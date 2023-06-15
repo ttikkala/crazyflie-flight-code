@@ -15,7 +15,7 @@ uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
 
-thrust_file = '~/.config/cfclient/logdata/20230614T16-19-03/Motors-20230614T16-19-15.csv'
+thrust_file = '~/.config/cfclient/logdata/20230614T16-59-51/Motors-20230614T16-59-57.csv'
 data = pd.read_csv(thrust_file)
 
 m1_input = data['motor.m1'].tolist()
@@ -135,16 +135,12 @@ if __name__ == '__main__':
         scf.cf.log.add_config(lg_motor)
         lg_motor.data_received_cb.add_callback(log_motor_callback)
 
-        # simple_connect()
-
-        # simple_log(scf, lg_stab)
-        # simple_log(scf, lg_motor)
 
         lg_motor.start()
         lg_stab.start()
 
-        thrust_ramp(scf)
-        # thrust_from_file(scf)
+        # thrust_ramp(scf)
+        thrust_from_file(scf)
 
         lg_motor.stop()
         lg_stab.stop()
