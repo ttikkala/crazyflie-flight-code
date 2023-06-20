@@ -20,6 +20,8 @@ import attr
 
 import natnet
 
+import data_threading
+
 file_extension = str(time.ctime().replace(' ', '_'))
 
 @attr.s
@@ -56,30 +58,34 @@ class ClientApp(object):
         """
         print()
         print('{:.1f}s: Received mocap frame'.format(timing.timestamp))
+        opti_data_reader = data_threading.drone_reader
+
         if rigid_bodies:
             print('Rigid bodies:')
             for b in rigid_bodies:
                 print('\t Id {}: ({: 5.2f}, {: 5.2f}, {: 5.2f}), ({: 5.2f}, {: 5.2f}, {: 5.2f}, {: 5.2f})'.format(
                     b.id_, *(b.position + b.orientation)
                 ))
+
+                opti_data_reader.read_data([b.id_, *(b.position + b.orientation)])
                 
-                file_path = './' + 'mocap_data' + '/' + file_extension
+                # file_path = './' + 'mocap_data' + '/' + file_extension
 
-                with open(os.path.join(file_path,
-                        'data.csv'), 'a') as fd:
-                    cwriter = csv.writer(fd)
-                    cwriter.writerow([time.time(), b.id_, *(b.position + b.orientation)]) # time.time() is time since 'epoch' - Jan 1 1970 00:00:00
+                # with open(os.path.join(file_path,
+                #         'data.csv'), 'a') as fd:
+                #     cwriter = csv.writer(fd)
+                #     cwriter.writerow([time.time(), b.id_, *(b.position + b.orientation)]) # time.time() is time since 'epoch' - Jan 1 1970 00:00:00
 
-        if markers:
-            print('Markers')
-            for m in markers:
-                print('\t Model {} marker {}: size {:.4f}mm, pos ({: 5.2f}, {: 5.2f}, {: 5.2f}), '.format(
-                    m.model_id, m.marker_id, 1000*m.size, *m.position
-                ))
-        print('\t Latency: {:.1f}ms (system {:.1f}ms, transit {:.1f}ms, processing {:.2f}ms)'.format(
-            1000*timing.latency, 1000*timing.system_latency, 1000*timing.transit_latency,
-            1000*timing.processing_latency
-        ))
+        # if markers:
+        #     print('Markers')
+        #     for m in markers:
+        #         print('\t Model {} marker {}: size {:.4f}mm, pos ({: 5.2f}, {: 5.2f}, {: 5.2f}), '.format(
+        #             m.model_id, m.marker_id, 1000*m.size, *m.position
+        #         ))
+        # print('\t Latency: {:.1f}ms (system {:.1f}ms, transit {:.1f}ms, processing {:.2f}ms)'.format(
+        #     1000*timing.latency, 1000*timing.system_latency, 1000*timing.transit_latency,
+        #     1000*timing.processing_latency
+        # ))
 
     def callback_quiet(self, *_):
         if time.time() - self._last_printed > 1:

@@ -11,6 +11,8 @@ from cflib.utils import uri_helper
 from cflib.crazyflie.log import LogConfig
 from cflib.crazyflie.syncLogger import SyncLogger
 
+import data_threading
+
 uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
@@ -28,6 +30,8 @@ stab_thrust_input = data['stabilizer.thrust'].tolist()
 stab = 0
 motor_signals = [0, 0, 0, 0]
 
+file_extension = str(time.ctime().replace(' ', '_'))
+
 
 # def log_stab_callback(timestamp, data, logconf):
 #     print(data)
@@ -43,7 +47,7 @@ motor_signals = [0, 0, 0, 0]
 
 
 def log_motor_callback(timestamp, data, logconf):
-    print(data)
+    # print(data)
     global motor_signals
     motor_signals[0] = data['motor.m1']
     motor_signals[1] = data['motor.m2']
@@ -53,13 +57,17 @@ def log_motor_callback(timestamp, data, logconf):
     global stab
     stab = data['stabilizer.thrust']
 
-    file_path = './' + 'thrust_data' + '/' + file_extension
+    global file_extension
 
-    with open(os.path.join(file_path,
-            'data.csv'), 'a') as fd:
-        cwriter = csv.writer(fd)
-        cwriter.writerow([time.time(), stab, motor_signals[0], motor_signals[1], motor_signals[2], motor_signals[3]]) # time.time() is time since 'epoch' - Jan 1 1970 00:00
+    # file_path = './' + 'thrust_data' + '/' + file_extension
 
+    # with open(os.path.join(file_path,
+    #         'data.csv'), 'a') as fd:
+    #     cwriter = csv.writer(fd)
+    #     cwriter.writerow([time.time(), stab, motor_signals[0], motor_signals[1], motor_signals[2], motor_signals[3]]) # time.time() is time since 'epoch' - Jan 1 1970 00:00
+
+    drone_data_reader = data_threading.drone_reader
+    drone_data_reader.read_data(motor_signals)
 
 
 
@@ -67,7 +75,7 @@ def thrust_ramp(scf):
 
     thrust_mult = 1
     thrust_step = 500
-    thrust = 20000
+    thrust = 10001
     pitch = 0
     roll = 0
     yawrate = 0
@@ -75,10 +83,10 @@ def thrust_ramp(scf):
     # Unlock startup thrust protection
     scf.cf.commander.send_setpoint(0, 0, 0, 0)
 
-    while thrust >= 20000:
+    while thrust >= 10001:
         scf.cf.commander.send_setpoint(roll, pitch, yawrate, thrust)
         time.sleep(0.1)
-        if thrust >= 25000:
+        if thrust >= 11000:
             thrust_mult = -1
         thrust += thrust_step * thrust_mult
     scf.cf.commander.send_setpoint(0, 0, 0, 0)
@@ -179,9 +187,9 @@ def ramp_motors(scf):
 
 
 
-if __name__ == '__main__':
+
+def main():
     
-    file_extension = str(time.ctime().replace(' ', '_'))
     folder = 'thrust_data'
     file_path = './' + folder + '/' + file_extension
 
@@ -219,8 +227,12 @@ if __name__ == '__main__':
         lg_motor.start()
         # lg_stab.start()
 
-        # thrust_ramp(scf)
-        thrust_from_file(scf)
+        thrust_ramp(scf)
+        # thrust_from_file(scf)
 
         lg_motor.stop()
         # lg_stab.stop()
+
+
+if __name__ == '__main__':
+    main()
