@@ -71,7 +71,7 @@ def plot_time_comp():
 thrust_df = pd.DataFrame({'Times': drone_data['Time'], 'thrusts': drone_data['stabilizer.thrust']})
 posy_df = pd.DataFrame({'Times': optitrack_data['Time'], 'y-pos': optitrack_data['Pos y']})
 
-combine_df = pd.merge_asof(thrust_df, posy_df, on='Times')
+combine_df = pd.merge_asof(posy_df, thrust_df, on='Times', tolerance=1.0)
 # with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
 #     print(combine_df)
 
@@ -79,6 +79,15 @@ combine_df = pd.merge_asof(thrust_df, posy_df, on='Times')
 fig, ax1 = plt.subplots(figsize=(9, 6))
 ax2 = ax1.twinx()  
 
-ax1.plot(combine_df['Times'], combine_df['thrusts'], color='r')
-ax2.plot(combine_df['Times'], combine_df['y-pos'], color='b')
+ax1.plot(combine_df['Times'], combine_df['thrusts'], color='r', label='Drone thrust')
+ax2.plot(combine_df['Times'], combine_df['y-pos'], color='b', label='y-position from OptiTrack')
+
+lines, labels = ax1.get_legend_handles_labels()
+lines2, labels2 = ax2.get_legend_handles_labels()
+ax2.legend(lines + lines2, labels + labels2, loc=0)
+
 plt.show()
+
+
+
+
