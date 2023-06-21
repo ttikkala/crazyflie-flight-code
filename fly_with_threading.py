@@ -27,14 +27,14 @@ import natnet
 #threading imports
 import threading
 
+
+# Crazyflie initialise radio connection
 uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
 
 stab = 0
 motor_signals = [0, 0, 0, 0]
-
-
 
 def log_motor_callback(timestamp, data, logconf):
     # print(data)
@@ -47,7 +47,6 @@ def log_motor_callback(timestamp, data, logconf):
     global stab
     stab = data['stabilizer.thrust']
 
-
     # global file_extension
 
     # file_path = './' + 'thrust_data' + '/' + file_extension
@@ -57,10 +56,10 @@ def log_motor_callback(timestamp, data, logconf):
     #     cwriter = csv.writer(fd)
     #     cwriter.writerow([time.time(), stab, motor_signals[0], motor_signals[1], motor_signals[2], motor_signals[3]]) # time.time() is time since 'epoch' - Jan 1 1970 00:00
 
-
     global drone_reader
     drone_reader.read_data(motor_signals)
 
+# CF flight code
 def fly_drone():
     
     # folder = 'thrust_data'
@@ -106,7 +105,7 @@ def fly_drone():
         lg_motor.stop()
         # lg_stab.stop()
 
-
+# Natnet SDK connection to optitrack data stream
 @attr.s
 class ClientApp(object):
 
@@ -226,7 +225,7 @@ class DataReader(object):
             logging.debug('Released a lock')
             self.lock.release()
         
-        time.sleep(0.1)
+        time.sleep(0.01)
 
 
 def write_to_csv(file_path, drone_data, opti_data):
@@ -249,6 +248,7 @@ def write_drone_opti(drone_reader, opti_reader, file_path):
             print('Drone lock acquired, drone data: ', drone_data)
         finally:
             drone_reader.lock.release()
+            time.sleep(0.01)
 
         opti_reader.lock.acquire()
         try:
@@ -256,9 +256,10 @@ def write_drone_opti(drone_reader, opti_reader, file_path):
             print('Opti lock acquired, opti data: ', opti_data)
         finally:
             opti_reader.lock.release()
+            time.sleep(0.01)
 
         write_to_csv(file_path, drone_data, opti_data)
-        time.sleep(0.1)
+        
 
 
 drone_reader = DataReader()
