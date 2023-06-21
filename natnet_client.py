@@ -58,7 +58,7 @@ class ClientApp(object):
         """
         print()
         print('{:.1f}s: Received mocap frame'.format(timing.timestamp))
-        opti_data_reader = data_threading.drone_reader
+        # opti_data_reader = data_threading.opti_reader
 
         if rigid_bodies:
             print('Rigid bodies:')
@@ -67,14 +67,14 @@ class ClientApp(object):
                     b.id_, *(b.position + b.orientation)
                 ))
 
-                opti_data_reader.read_data([b.id_, *(b.position + b.orientation)])
+                # opti_data_reader.read_data([b.id_, *(b.position + b.orientation)])
                 
-                # file_path = './' + 'mocap_data' + '/' + file_extension
+                file_path = './' + 'mocap_data' + '/' + file_extension
 
-                # with open(os.path.join(file_path,
-                #         'data.csv'), 'a') as fd:
-                #     cwriter = csv.writer(fd)
-                #     cwriter.writerow([time.time(), b.id_, *(b.position + b.orientation)]) # time.time() is time since 'epoch' - Jan 1 1970 00:00:00
+                with open(os.path.join(file_path,
+                        'data.csv'), 'a') as fd:
+                    cwriter = csv.writer(fd)
+                    cwriter.writerow([time.time(), b.id_, *(b.position + b.orientation)]) # time.time() is time since 'epoch' - Jan 1 1970 00:00:00
 
         # if markers:
         #     print('Markers')

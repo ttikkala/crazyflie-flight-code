@@ -19,41 +19,46 @@ class DataReader(object):
         try:
             logging.debug('Acquired a lock')
             self.value = data_in
-            print(data_in)
+            print('Data in: ', self.value)
         finally:
             logging.debug('Released a lock')
             self.lock.release()
+        
+        time.sleep(0.01)
 
 
 def write_to_csv(file_path, drone_data, opti_data):
     with open(os.path.join(file_path,
             'data.csv'), 'a') as fd:
         cwriter = csv.writer(fd)
+        print('To csv: ', [time.time()], drone_data, opti_data)
         cwriter.writerow([time.time()] + drone_data + opti_data) # time.time() is time since 'epoch' - Jan 1 1970 00:00
+        # print(drone_data)
+        # print(opti_data)
 
 
-def write_drone_opti(drone_thread, opti_thread, file_path):
-    drone_data = [0, 0, 0, 0]
-    opti_data = [0, 0, 0, 0, 0, 0, 0]
+def write_drone_opti(drone_reader, opti_reader, file_path):
 
     while True:
 
         drone_reader.lock.acquire()
         try:
             drone_data = drone_reader.value
-            print(drone_data)
+            print('Drone lock acquired, drone data: ', drone_data)
         finally:
             drone_reader.lock.release()
+            time.sleep(0.02)
 
         opti_reader.lock.acquire()
         try:
             opti_data = opti_reader.value
-            print(opti_data)
+            print('Opti lock acquired, opti data: ', opti_data)
         finally:
             opti_reader.lock.release()
+            time.sleep(0.02)
 
         write_to_csv(file_path, drone_data, opti_data)
-        time.sleep(0.1)
+        
 
 
 drone_reader = DataReader()
@@ -79,7 +84,7 @@ if __name__ == '__main__':
 
     drone_thread = threading.Thread(target=send_thrust_setpoints.main)
     opti_thread = threading.Thread(target=natnet_client.main)
-    main_thread = threading.Thread(target=write_drone_opti, args=(drone_thread, opti_thread, file_path))
+    main_thread = threading.Thread(target=write_drone_opti, args=(drone_reader, opti_reader, file_path))
 
     drone_thread.start()
     opti_thread.start()

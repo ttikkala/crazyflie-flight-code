@@ -17,7 +17,7 @@ uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
 
-thrust_file = '~/.config/cfclient/logdata/20230616T13-47-02/Motors-20230616T13-48-05.csv'
+thrust_file = '~/.config/cfclient/logdata/20230621T09-53-19/Motors-20230621T09-54-06.csv'
 data = pd.read_csv(thrust_file)
 
 m1_input = data['motor.m1'].tolist()
@@ -33,19 +33,6 @@ motor_signals = [0, 0, 0, 0]
 file_extension = str(time.ctime().replace(' ', '_'))
 
 
-# def log_stab_callback(timestamp, data, logconf):
-#     print(data)
-#     global stab
-#     stab = data['stabilizer.thrust']
-
-    # file_path = './' + 'experiment_data' + '/' + file_extension
-
-    # with open(os.path.join(file_path,
-    #         'data.csv'), 'a') as fd:
-    #     cwriter = csv.writer(fd)
-    #     cwriter.writerow([time.time(), stab, 0, 0, 0, 0]) # time.time() is time since 'epoch' - Jan 1 1970 00:00
-
-
 def log_motor_callback(timestamp, data, logconf):
     # print(data)
     global motor_signals
@@ -59,15 +46,15 @@ def log_motor_callback(timestamp, data, logconf):
 
     global file_extension
 
-    # file_path = './' + 'thrust_data' + '/' + file_extension
+    file_path = './' + 'thrust_data' + '/' + file_extension
 
-    # with open(os.path.join(file_path,
-    #         'data.csv'), 'a') as fd:
-    #     cwriter = csv.writer(fd)
-    #     cwriter.writerow([time.time(), stab, motor_signals[0], motor_signals[1], motor_signals[2], motor_signals[3]]) # time.time() is time since 'epoch' - Jan 1 1970 00:00
+    with open(os.path.join(file_path,
+            'data.csv'), 'a') as fd:
+        cwriter = csv.writer(fd)
+        cwriter.writerow([time.time(), stab, motor_signals[0], motor_signals[1], motor_signals[2], motor_signals[3]]) # time.time() is time since 'epoch' - Jan 1 1970 00:00
 
-    drone_data_reader = data_threading.drone_reader
-    drone_data_reader.read_data(motor_signals)
+    # drone_data_reader = data_threading.drone_reader
+    # drone_data_reader.read_data(motor_signals)
 
 
 
