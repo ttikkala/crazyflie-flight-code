@@ -39,10 +39,13 @@ motor_signals = [0, 0, 0, 0]
 def log_motor_callback(timestamp, data, logconf):
     # print(data)
     global motor_signals
+    
     motor_signals[0] = data['motor.m1']
     motor_signals[1] = data['motor.m2']
     motor_signals[2] = data['motor.m3']
     motor_signals[3] = data['motor.m4']
+
+    print('Motor PWM: ', [motor_signals[0], motor_signals[1], motor_signals[2], motor_signals[3]])
 
     global stab
     stab = data['stabilizer.thrust']
@@ -58,6 +61,8 @@ def log_motor_callback(timestamp, data, logconf):
 
     global drone_reader
     drone_reader.read_data(motor_signals)
+
+
 
 # CF flight code
 def fly_drone():
@@ -90,20 +95,25 @@ def fly_drone():
 
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
 
-        # scf.cf.log.add_config(lg_stab)
-        # lg_stab.data_received_cb.add_callback(log_stab_callback)
-        scf.cf.log.add_config(lg_motor)
-        lg_motor.data_received_cb.add_callback(log_motor_callback)
+        try:
+            scf.cf.log.add_config(lg_motor)
+            lg_motor.data_received_cb.add_callback(log_motor_callback)
 
 
-        lg_motor.start()
-        # lg_stab.start()
+            lg_motor.start()
 
-        cf_thrust_fns.thrust_ramp(scf)
-        # thrust_from_file(scf)
+            # cf_thrust_fns.thrust_ramp(scf)
+            cf_thrust_fns.thrust_from_file(scf)
+            # cf_thrust_fns.ramp_motors(scf)
+            # ramp_motors(scf)
+            # cf_thrust_fns.motors_from_file(scf)
 
-        lg_motor.stop()
-        # lg_stab.stop()
+            lg_motor.stop()
+            
+        except KeyboardInterrupt:
+            scf.cf.param.set_value('motorPowerSet.enable', 0)
+            print('Sending shutdown command')
+            
 
 # Natnet SDK connection to optitrack data stream
 @attr.s
@@ -138,16 +148,16 @@ class ClientApp(object):
         :type markers: list[LabelledMarker]
         :type timing: TimestampAndLatency
         """
-        print()
-        print('{:.1f}s: Received mocap frame'.format(timing.timestamp))
+        # print()
+        # print('{:.1f}s: Received mocap frame'.format(timing.timestamp))
         global opti_reader
 
         if rigid_bodies:
-            print('Rigid bodies:')
+            # print('Rigid bodies:')
             for b in rigid_bodies:
-                print('\t Id {}: ({: 5.2f}, {: 5.2f}, {: 5.2f}), ({: 5.2f}, {: 5.2f}, {: 5.2f}, {: 5.2f})'.format(
-                    b.id_, *(b.position + b.orientation)
-                ))
+            #     print('\t Id {}: ({: 5.2f}, {: 5.2f}, {: 5.2f}), ({: 5.2f}, {: 5.2f}, {: 5.2f}, {: 5.2f})'.format(
+            #         b.id_, *(b.position + b.orientation)
+            #     ))
 
                 opti_reader.read_data([b.id_, *(b.position + b.orientation)])
                 
@@ -225,14 +235,14 @@ class DataReader(object):
             logging.debug('Released a lock')
             self.lock.release()
         
-        time.sleep(0.01)
+        # time.sleep(0.01)
 
 
 def write_to_csv(file_path, drone_data, opti_data):
     with open(os.path.join(file_path,
             'data.csv'), 'a') as fd:
         cwriter = csv.writer(fd)
-        print('To csv: ', [time.time()], drone_data, opti_data)
+        # print('To csv: ', [time.time()], drone_data, opti_data)
         cwriter.writerow([time.time()] + drone_data + opti_data) # time.time() is time since 'epoch' - Jan 1 1970 00:00
         # print(drone_data)
         # print(opti_data)
@@ -245,7 +255,7 @@ def write_drone_opti(drone_reader, opti_reader, file_path):
         drone_reader.lock.acquire()
         try:
             drone_data = drone_reader.value
-            print('Drone lock acquired, drone data: ', drone_data)
+            # print('Drone lock acquired, drone data: ', drone_data)
         finally:
             drone_reader.lock.release()
             time.sleep(0.01)
@@ -253,7 +263,7 @@ def write_drone_opti(drone_reader, opti_reader, file_path):
         opti_reader.lock.acquire()
         try:
             opti_data = opti_reader.value
-            print('Opti lock acquired, opti data: ', opti_data)
+            # print('Opti lock acquired, opti data: ', opti_data)
         finally:
             opti_reader.lock.release()
             time.sleep(0.01)
@@ -290,3 +300,5 @@ if __name__ == '__main__':
     drone_thread.start()
     opti_thread.start()
     main_thread.start()
+    # fly_drone()
+    

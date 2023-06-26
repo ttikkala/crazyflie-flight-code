@@ -20,7 +20,7 @@ import attr
 
 import natnet
 
-import data_threading
+import data_threading_OLD
 
 file_extension = str(time.ctime().replace(' ', '_'))
 

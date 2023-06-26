@@ -11,13 +11,15 @@ from cflib.utils import uri_helper
 from cflib.crazyflie.log import LogConfig
 from cflib.crazyflie.syncLogger import SyncLogger
 
-import data_threading
+# import data_threading_OLD
+
+import atexit
 
 uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
 
-thrust_file = '~/.config/cfclient/logdata/20230621T09-53-19/Motors-20230621T09-54-06.csv'
+thrust_file = '~/.config/cfclient/logdata/20230626T11-17-16/Motors-20230626T11-17-20.csv'
 data = pd.read_csv(thrust_file)
 
 m1_input = data['motor.m1'].tolist()
@@ -101,78 +103,83 @@ def ramp_motors(scf):
         thrust_mult = 1
         thrust_step = 500
         time_step = 0.1
-        thrust = 0
+        thrust = 5000
         pitch = 0
         roll = 0
         yawrate = 0
 
-        # print(scf.cf.calib_a, scf.cf.calib_b)
-        # scf.cf._cf.param.set_value('loadcell.a', str(scf.cf.calib_a))
-        # scf.cf._cf.param.set_value('loadcell.b', str(scf.cf.calib_b))
+        scf.cf.commander.send_setpoint(0, 0, 0, 0)
 
-        # scf.cf._file = open("data.csv", "w+")
-        # scf.cf._file.write("weight[g],pwm,vbat[V],rpm1,rpm2,rpm3,rpm4,v[V],i[A],p[W]\n");
-
-        # The definition of the logconfig can be made before connecting
-        scf.cf._lg_stab = LogConfig(name='data', period_in_ms=10)
-        scf.cf._lg_stab.add_variable('loadcell.weight', 'float')
-        scf.cf._lg_stab.add_variable('pwm.m1_pwm', 'uint16_t')
-        scf.cf._lg_stab.add_variable('pm.vbatMV', 'uint16_t')
-        scf.cf._lg_stab.add_variable('rpm.m1', 'uint16_t')
-        scf.cf._lg_stab.add_variable('rpm.m2', 'uint16_t')
-        scf.cf._lg_stab.add_variable('rpm.m3', 'uint16_t')
-        scf.cf._lg_stab.add_variable('rpm.m4', 'uint16_t')
-        scf.cf._lg_stab.add_variable('asc37800.v_mV', 'int16_t')
-        scf.cf._lg_stab.add_variable('asc37800.i_mA', 'int16_t')
-        scf.cf._lg_stab.add_variable('asc37800.p_mW', 'int16_t')
-
-        # Adding the configuration cannot be done until a Crazyflie is
-        # connected, since we need to check that the variables we
-        # would like to log are in the TOC.
-        try:
-            scf.cf.log.add_config(scf.cf._lg_stab)
-            # This callback will receive the data
-            scf.cf._lg_stab.data_received_cb.add_callback(scf.cf._stab_log_data)
-            # This callback will be called on errors
-            scf.cf._lg_stab.error_cb.add_callback(scf.cf._stab_log_error)
-            # Start the logging
-            scf.cf._lg_stab.start()
-        except KeyError as e:
-            print('Could not start log configuration,'
-                  '{} not found in TOC'.format(str(e)))
-        except AttributeError:
-            print('Could not add Stabilizer log config, bad configuration.')
-
-        # # Unlock startup thrust protection
-        # for i in range(0, 100):
-        #     scf.cf._cf.commander.send_setpoint(0, 0, 0, 0)
-
-        # localization = Localization(scf.cf._cf)
-
-        scf.cf.param.set_value('motor.batCompensation', 0)
+        # scf.cf.param.set_value('motor.batCompensation', 0)
         scf.cf.param.set_value('motorPowerSet.m1', 0)
+        scf.cf.param.set_value('motorPowerSet.m2', 0)
+        scf.cf.param.set_value('motorPowerSet.m3', 0)
+        scf.cf.param.set_value('motorPowerSet.m4', 0)
         scf.cf.param.set_value('motorPowerSet.enable', 2)
         scf.cf.param.set_value('system.forceArm', 1)
 
         while scf.cf.is_connected: #thrust >= 0:
             thrust += thrust_step * thrust_mult
-            if thrust >= 65536 or thrust < 0:
-            # if thrust >= 20000 or thrust < 0:
+            if thrust >= 13000 or thrust < 0:
                 thrust_mult *= -1
                 thrust += thrust_step * thrust_mult
             print(thrust)
             # scf.cf._cf.commander.send_setpoint(roll, pitch, yawrate, thrust)
             # localization.send_emergency_stop_watchdog()
-            scf.cf._cf.param.set_value('motorPowerSet.m1', str(thrust))
+            scf.cf.param.set_value('motorPowerSet.m1', str(thrust))
+            scf.cf.param.set_value('motorPowerSet.m2', str(thrust))
+            scf.cf.param.set_value('motorPowerSet.m3', str(thrust))
+            scf.cf.param.set_value('motorPowerSet.m4', str(thrust))
             time.sleep(time_step)
 
-        # scf.cf._cf.commander.send_setpoint(0, 0, 0, 0)
+            # scf.cf.commander.send_setpoint(0, 0, 0, 0)
+            # time.sleep(10)
+
+        # scf.cf.commander.send_setpoint(0, 0, 0, 0)
         # Make sure that the last packet leaves before the link is closed
         # since the message queue is not flushed before closing
-        # time.sleep(0.1)
-        # scf.cf._cf.close_link()
+        time.sleep(0.1)
+        scf.cf.close_link()
 
 
+def motors_from_file(scf):
+
+    data = pd.read_csv(thrust_file)
+
+    m1_input = data['motor.m1'].to_numpy()
+    m2_input = data['motor.m2'].to_numpy()
+    m3_input = data['motor.m3'].to_numpy()
+    m4_input = data['motor.m4'].to_numpy()
+
+    # stab_thrust_input = data['stabilizer.thrust'].tolist()
+
+    motor_inputs = [m1_input, m2_input, m3_input, m4_input]
+     
+    scf.cf.param.set_value('motorPowerSet.m1', 0)
+    scf.cf.param.set_value('motorPowerSet.m2', 0)
+    scf.cf.param.set_value('motorPowerSet.m3', 0)
+    scf.cf.param.set_value('motorPowerSet.m4', 0)
+    scf.cf.param.set_value('motorPowerSet.enable', 2)
+    scf.cf.param.set_value('system.forceArm', 1)
+
+    while scf.cf.is_connected:
+        for idx in range(len(motor_inputs[0])):
+            time.sleep(0.1)
+            scf.cf.param.set_value('motorPowerSet.m1', str(motor_inputs[0][idx]))
+            # print('Motor inputs 1: ', [motor_inputs[0][idx], motor_inputs[1][idx], motor_inputs[2][idx], motor_inputs[3][idx]])
+            scf.cf.param.set_value('motorPowerSet.m2', str(motor_inputs[1][idx]))
+            # print('Motor inputs 2: ', [motor_inputs[0][idx], motor_inputs[1][idx], motor_inputs[2][idx], motor_inputs[3][idx]])
+            scf.cf.param.set_value('motorPowerSet.m3', str(motor_inputs[2][idx]))
+            # print('Motor inputs 3: ', [motor_inputs[0][idx], motor_inputs[1][idx], motor_inputs[2][idx], motor_inputs[3][idx]])
+            scf.cf.param.set_value('motorPowerSet.m4', str(motor_inputs[3][idx]))
+            print('Motor inputs: ', [motor_inputs[0][idx], motor_inputs[1][idx], motor_inputs[2][idx], motor_inputs[3][idx]])
+
+def hover_auto(scf):
+
+    scf.cf.commander.send_setpoint(0, 0, 0, 0)
+    scf.cf.commander.send_hover_setpoint(0, 0, 0, 0.1)
+    time.sleep(5)
+    scf.cf.commander.send_hover_setpoint(0, 0, 0, 0)
 
 
 def main():
@@ -205,21 +212,50 @@ def main():
 
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
 
-        # scf.cf.log.add_config(lg_stab)
-        # lg_stab.data_received_cb.add_callback(log_stab_callback)
-        scf.cf.log.add_config(lg_motor)
-        lg_motor.data_received_cb.add_callback(log_motor_callback)
+        try:
+            # scf.cf.log.add_config(lg_stab)
+            # lg_stab.data_received_cb.add_callback(log_stab_callback)
+            scf.cf.log.add_config(lg_motor)
+            lg_motor.data_received_cb.add_callback(log_motor_callback)
 
+            lg_motor.start()
 
-        lg_motor.start()
-        # lg_stab.start()
+            # thrust_ramp(scf)
+            thrust_from_file(scf)
+            # ramp_motors(scf)
+            # motors_from_file(scf)
+            # hover_auto(scf)
 
-        thrust_ramp(scf)
-        # thrust_from_file(scf)
+            lg_motor.stop()
+            
+        except KeyboardInterrupt:
+            scf.cf.param.set_value('motorPowerSet.enable', 0)
+            print('Sending shutdown command')
+            
 
-        lg_motor.stop()
-        # lg_stab.stop()
 
 
 if __name__ == '__main__':
     main()
+
+
+
+
+
+
+# atexit.register(zero_thrust)
+
+
+# import signal
+
+# def handle_exit():
+#     print('In exit fn')
+#     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
+#         print('Sending shutdown command')
+#         scf.cf.commander.send_setpoint(0, 0, 0, 0)
+
+
+
+# atexit.register(handle_exit)
+# signal.signal(signal.SIGTERM, handle_exit)
+# signal.signal(signal.SIGINT, handle_exit)
