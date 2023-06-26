@@ -54,7 +54,7 @@ def thrust_from_file(scf):
 
     for thrust in stab_thrust_input:
         time.sleep(0.1)
-        scf.cf.commander.send_setpoint(-1.1, -1.5, 0, thrust) # roll, pitch, yawrate, thrust
+        scf.cf.commander.send_setpoint(-1.2, -1.8, 0, thrust) # roll, pitch, yawrate, thrust
 
     scf.cf.commander.send_setpoint(0, 0, 0, 0)
     time.sleep(0.1)
