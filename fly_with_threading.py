@@ -279,7 +279,7 @@ if __name__ == '__main__':
 
 
     folder = 'thrust_mocap_data'
-    file_extension = str(time.ctime().replace(' ', '_'))
+    file_extension = str(time.ctime().replace(' ', '-'))
     file_path = './' + folder + '/' + file_extension
 
     # Create folder
@@ -289,7 +289,7 @@ if __name__ == '__main__':
     with open(os.path.join(file_path,
         'data.csv'), 'a') as fd:
         cwriter = csv.writer(fd)
-        cwriter.writerow(['Time', 'motor.m1', 'motor.m2', 'motor.m3', 'motor.m4', 'RB ID', 'Pos x', 'Pos y', 'Pos z', 'Quat 1', 'Quat 2', 'Quat 3', 'Quat 4']) 
+        cwriter.writerow(['Time', 'motor.m1', 'motor.m2', 'motor.m3', 'motor.m4', 'RB ID', 'Pos x', 'Pos y', 'Pos z', 'Quat w', 'Quat x', 'Quat y', 'Quat z']) 
     
     
 
