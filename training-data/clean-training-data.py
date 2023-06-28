@@ -83,11 +83,11 @@ state_data = np.column_stack((posx_data, posy_data, posz_data, v_x, v_y, v_z, qu
 action_data = np.column_stack((m1_data, m2_data, m3_data, m4_data))
 
 transitions = np.zeros(((np.shape(posx_data)[0] - 1), 24))
-print(transitions)
+# print(transitions)
 
-print(state_data[0])
-print(action_data[0])
-print(state_data[1])
+# print(state_data[0])
+# print(action_data[0])
+# print(state_data[1])
 
 
 for i in range(np.shape(posx_data)[0] - 1):
@@ -95,12 +95,19 @@ for i in range(np.shape(posx_data)[0] - 1):
     transitions[i][10:14] = action_data[i]
     transitions[i][14:] = state_data[i+1]
 
-print(transitions[0])
+# print(transitions[0])
 
 output_file = "./transitions-" + file_path[13:21] + ".csv"
 
-df = pd.DataFrame({'Time' : time, 'motor.m1' : m1_data, 'motor.m2' : m2_data, 'motor.m3' : m3_data, 'motor.m4' : m4_data, 
-                   'Pos x': posx_data, 'Pos y': posy_data, 'Pos z': posz_data, 
-                   'Vel x': v_x, 'Vel y': v_y, 'Vel z': v_z, 
-                   'Quat w': quatw_data, 'Quat x': quatx_data, 'Quat y': quaty_data, 'Quat z': quatz_data})
-# df.to_csv(output_file, index=False)
+np.savetxt("transitions.csv", transitions, delimiter=',')
+
+
+df = pd.DataFrame({'Pos x': transitions[:,0], 'Pos y': transitions[:,1], 'Pos z': transitions[:,2], 
+                   'Vel x': transitions[:,3], 'Vel y': transitions[:,4], 'Vel z': transitions[:,5], 
+                   'Quat w': transitions[:,6], 'Quat x': transitions[:,7], 'Quat y': transitions[:,8], 'Quat z': transitions[:,9],
+                   'motor.m1' : transitions[:,10], 'motor.m2' : transitions[:,11], 'motor.m3' : transitions[:,12], 'motor.m4' : transitions[:,13], 
+                   'Next Pos x': transitions[:,14], 'Next Pos y': transitions[:,15], 'Next Pos z': transitions[:,16], 
+                   'Next Vel x': transitions[:,17], 'Next Vel y': transitions[:,18], 'Next Vel z': transitions[:,19], 
+                   'Next Quat w': transitions[:,20], 'Next Quat x': transitions[:,21], 'Next Quat y': transitions[:,22], 'Next Quat z': transitions[:,23]})
+df.to_csv(output_file, index=False)
+
