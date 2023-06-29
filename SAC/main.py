@@ -1,22 +1,34 @@
-# import stuff
 import replay
 import os
 import time
 import numpy as np
+import pandas as pd
 import soft_actor_critic
 import csv
 import torch
 import replay
 import time
 
-device = 'cuda' 
-# 'cuda' or 'cpu'
+device = 'cuda'  # 'cuda' or 'cpu'
 
 
-# TODO: import data and fix dimension stuff below
+# Import data
+file_path = '12:58:51'
+# file_path = str(sys.argv[1])
+state_path = 'states-' + file_path + '.csv'
+rewards_path = 'rewards-' + file_path + '.csv'
+actions_path = 'actions-' + file_path + '.csv'
 
-observation_dim = 10 # data.something
-action_dim = 4 # data.something
+state_data = pd.read_csv(state_path)
+rewards_data = pd.read_csv(rewards_path)
+actions_data = pd.read_csv(actions_path)
+
+states = state_data.to_numpy()
+rewards = rewards_data.to_numpy()
+actions = actions_data.to_numpy()
+
+observation_dim = np.shape(states)[1]
+action_dim = np.shape(actions)[1]
 
 # initialise replay buffer
 replay = replay.SimpleReplayBuffer(
@@ -32,8 +44,6 @@ networks = soft_actor_critic.SoftActorCritic._create_networks(obs_dim=observatio
 agent = soft_actor_critic.SoftActorCritic(replay=replay, networks=networks)
 
 
-
-
 # store data
 folder = 'training_runs'
 file_path = './' + folder + '/' + time.ctime().replace(' ', '_')
@@ -42,13 +52,16 @@ if not os.path.exists(file_path):
     os.makedirs(file_path)
 
 
-# TODO: normalise state data and clip action data
-
-# TODO: calculate rewards from state
-
-# TODO: create batches with correct structure from collected flight data
 
 
+# Populate replay buffer with collected flight data
+for i in range(np.shape(states)[0]):
+    replay.add_sample(observation=states[i], 
+                      action=actions[i], 
+                      reward=rewards[i], 
+                      next_observation=states[i+1], 
+                      terminal=0, # Not sure what to put here?
+                      env_info={})
 
 
 

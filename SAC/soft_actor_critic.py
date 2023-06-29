@@ -1,6 +1,6 @@
 #########
 
-# From co-adaptation code, use rlkit version 0.2.1
+# From co-adaptation code, using rlkit version 0.2.1
 
 #########
 
@@ -48,7 +48,7 @@ class SoftActorCritic(RL_algorithm):
         self._batch_size = 64
         self._nmbr_updates = 1000
 
-        self._algorithm_ind = SoftActorCritic_rlkit(
+        self._algorithm = SoftActorCritic_rlkit(
             # env=self._env,
             policy=self._policy,
             qf1=self._qf1,
