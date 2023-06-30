@@ -15,7 +15,6 @@ import rlkit.torch.pytorch_util as ptu
 import torch
 import utils
 
-# networks = {individual:, population:}
 class SoftActorCritic(RL_algorithm):
 
     def __init__(self, 
@@ -26,11 +25,8 @@ class SoftActorCritic(RL_algorithm):
         """ Basically a wrapper class for SAC from rlkit.
 
         Args:
-            config: Configuration dictonary
-            env: Environment
             replay: Replay buffer
-            networks: dict containing two sub-dicts, 'individual' and 'population'
-                which contain the networks.
+            networks: dict containing the networks.
 
         """
         super().__init__(replay, 
@@ -96,6 +92,8 @@ class SoftActorCritic(RL_algorithm):
         for _ in range(self._nmbr_updates):
             batch = self._replay.random_batch(self._batch_size)
             self._algorithm.train(batch)
+        statistics = self._algorithm.get_diagnostics()
+        print(statistics)
 
 
 

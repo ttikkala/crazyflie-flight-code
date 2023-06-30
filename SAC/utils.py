@@ -22,19 +22,5 @@ def move_to_cuda(config):
             cuda_device = 0
         ptu.set_gpu_mode(True, cuda_device)
 
-def copy_pop_to_ind(networks_pop, networks_ind):
-    """ Function used to copy params from pop. networks to individual networks.
 
-    The parameters of all networks in network_ind will be set to the parameters
-    of the networks in networks_ind.
-
-    Args:
-        networks_pop: Dictonary containing the population networks.
-        networks_ind: Dictonary containing the individual networks. These
-            networks will be updated.
-    """
-    for key in networks_pop:
-        state_dict = networks_pop[key].state_dict()
-        networks_ind[key].load_state_dict(state_dict)
-        networks_ind[key].eval()
 

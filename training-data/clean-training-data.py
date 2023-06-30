@@ -4,6 +4,7 @@ import pandas as pd
 import csv
 import sys
 
+folder_path = './Mon-Jun-26-12:58:51-2023/'
 file_path = './Mon-Jun-26-12:58:51-2023/data.csv'
 # file_path = str(sys.argv[1])
 
@@ -99,7 +100,7 @@ def normalise_state(state):
     return state
 
 def calculate_rewards(state, goal_position, stable_orientation):
-    # TODO: Calculate rewards
+    # Calculate rewards
     # minimise sqrt( (curr pos - goal pos)**2 + (curr orientation - stable orientation)**2 )
     # should it be * -1 ?
 
@@ -107,7 +108,7 @@ def calculate_rewards(state, goal_position, stable_orientation):
     orientation_error = np.array([state[:,3], state[:,4], state[:,5], state[:,6]]).transpose() - stable_orientation
 
     # Take the norm of each error vector separately to get a vector of rewards https://stackoverflow.com/questions/7741878/how-to-apply-numpy-linalg-norm-to-each-row-of-a-matrix
-    rewards = np.sum(np.abs(pos_error)**2, axis = -1)**(1./2) + np.sum(np.abs(orientation_error)**2, axis = -1)**(1./2)
+    rewards = -(np.sum(np.abs(pos_error)**2, axis = -1)**(1./2) + np.sum(np.abs(orientation_error)**2, axis = -1)**(1./2))
 
     return rewards
 
@@ -123,7 +124,7 @@ def main():
     # Actions: motor values of next time step?
     action_data = np.column_stack((m1_actions[1:], m2_actions[1:], m3_actions[1:], m4_actions[1:]))
 
-    output_file = "./actions-" + file_path[13:21] + ".csv"
+    output_file = folder_path + "actions.csv"
     action_df = pd.DataFrame({'motor.m1' : action_data[:,0], 'motor.m2' : action_data[:,1], 'motor.m3' : action_data[:,2], 'motor.m4' : action_data[:,3]})
     action_df.to_csv(output_file, index=False)
 
@@ -136,12 +137,12 @@ def main():
                                 m1_data, m2_data, m3_data, m4_data))
     
     print(state_data[:,0])
-    # TODO: norm state
+    # Normalise state
     state_data = normalise_state(state_data)
 
     print(state_data[:,0])
 
-    output_file = "./states-" + file_path[13:21] + ".csv"
+    output_file = folder_path + "states.csv"
     state_df = pd.DataFrame({'Pos y': state_data[:,0], 'Vel x': state_data[:,1], 'Vel z': state_data[:,2], 
                     'Quat w': state_data[:,3], 'Quat x': state_data[:,4], 'Quat y': state_data[:,5], 'Quat z': state_data[:,6],
                     'Ang vel w': state_data[:,7], 'Ang vel x': state_data[:,8], 'Ang vel y': state_data[:,9], 'Ang vel z': state_data[:,10],
@@ -160,7 +161,7 @@ def main():
     rewards = calculate_rewards(state_data, goal_position, stable_orientation)
     print(np.shape(rewards))
 
-    output_file = "./rewards-" + file_path[13:21] + ".csv"
+    output_file = folder_path + "rewards.csv"
     reward_df = pd.DataFrame({'Rewards': rewards})
     reward_df.to_csv(output_file, index=False)
 

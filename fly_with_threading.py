@@ -14,6 +14,17 @@ from cflib.crazyflie.syncLogger import SyncLogger
 
 import cf_thrust_fns
 
+
+# python-natnet copyright notice
+"""Command-line NatNet client application for testing.
+
+Copyright (c) 2017, Matthew Edwards.  This file is subject to the 3-clause BSD
+license, as found in the LICENSE file in the top-level directory of this
+distribution and at https://github.com/mje-nz/python_natnet/blob/master/LICENSE.
+No part of python_natnet, including this file, may be copied, modified,
+propagated, or distributed except according to the terms contained in the
+LICENSE file.
+"""
 #natnet imports
 import argparse
 import time
@@ -160,13 +171,6 @@ class ClientApp(object):
             #     ))
 
                 opti_reader.read_data([b.id_, *(b.position + b.orientation)])
-                
-                # file_path = './' + 'mocap_data' + '/' + file_extension
-
-                # with open(os.path.join(file_path,
-                #         'data.csv'), 'a') as fd:
-                #     cwriter = csv.writer(fd)
-                #     cwriter.writerow([time.time(), b.id_, *(b.position + b.orientation)]) # time.time() is time since 'epoch' - Jan 1 1970 00:00:00
 
         # if markers:
         #     print('Markers')
@@ -300,5 +304,4 @@ if __name__ == '__main__':
     drone_thread.start()
     opti_thread.start()
     main_thread.start()
-    # fly_drone()
     
