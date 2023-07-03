@@ -52,6 +52,7 @@ class SoftActorCritic(RL_algorithm):
             target_qf1=self._qf1_target,
             target_qf2=self._qf2_target,
             use_automatic_entropy_tuning = False,
+            alpha=0.01,
         )
 
         # self._algorithm_ind.to(ptu.device)

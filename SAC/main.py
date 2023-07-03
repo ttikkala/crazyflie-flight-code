@@ -81,7 +81,6 @@ def main():
     print('Training')
     for _ in range(1000):
         agent.single_train_step()
-        print('Done single step')
     print('Done training')
 
 if __name__ == '__main__':

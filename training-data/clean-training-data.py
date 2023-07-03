@@ -18,6 +18,22 @@ m2_data = np.array(flight_data['motor.m2'].tolist())
 m3_data = np.array(flight_data['motor.m3'].tolist())
 m4_data = np.array(flight_data['motor.m4'].tolist())
 
+# Disgusting fix for a truly stupid problem
+motor_data_input_path = '~/.config/cfclient/logdata/20230626T11-17-16/Motors-20230626T11-17-20.csv'
+motor_data_input = pd.read_csv(motor_data_input_path)
+thrust_data_temp = np.array(motor_data_input['stabilizer.thrust'].tolist())
+start_idx = np.argmax(thrust_data_temp > 0)
+thrust_data_temp = thrust_data_temp[start_idx:]
+thrust_data = []
+
+for i in range(len(thrust_data_temp)):
+    for j in range(10):
+        thrust_data.append(thrust_data_temp[i])
+
+thrust_data = np.array(thrust_data)
+
+print(thrust_data)
+
 posx_data = np.array(flight_data['Pos x'].tolist())
 posy_data = np.array(flight_data['Pos y'].tolist())
 posz_data = np.array(flight_data['Pos z'].tolist())
@@ -37,6 +53,8 @@ m1_data = m1_data[start_time_idx:]
 m2_data = m2_data[start_time_idx:]
 m3_data = m3_data[start_time_idx:]
 m4_data = m4_data[start_time_idx:]
+
+thrust_data = thrust_data[:len(m1_data)]
 
 # Get position and orientation data
 posx_data = posx_data[start_time_idx:]
@@ -91,7 +109,6 @@ def clip_and_norm_actions(data):
 
 def normalise_state(state):
     # Normalise states through Z-score
-
     for i in range(np.shape(state)[1]):
         mean = np.mean(state[:,i])
         std = np.std(state[:,i])
@@ -101,8 +118,7 @@ def normalise_state(state):
 
 def calculate_rewards(state, goal_position, stable_orientation):
     # Calculate rewards
-    # minimise sqrt( (curr pos - goal pos)**2 + (curr orientation - stable orientation)**2 )
-    # should it be * -1 ?
+    # maximise -sqrt( (curr pos - goal pos)**2 + (curr orientation - stable orientation)**2 )
 
     pos_error = np.array([state[:,0], state[:,1], state[:,2]]).transpose() - goal_position
     orientation_error = np.array([state[:,3], state[:,4], state[:,5], state[:,6]]).transpose() - stable_orientation
@@ -116,16 +132,17 @@ def calculate_rewards(state, goal_position, stable_orientation):
 def main():
 
     # Normalise and clip motor values to get actions
-    m1_actions = clip_and_norm_actions(m1_data)
-    m2_actions = clip_and_norm_actions(m2_data)
-    m3_actions = clip_and_norm_actions(m3_data)
-    m4_actions = clip_and_norm_actions(m4_data)
+    # m1_actions = clip_and_norm_actions(m1_data)
+    # m2_actions = clip_and_norm_actions(m2_data)
+    # m3_actions = clip_and_norm_actions(m3_data)
+    # m4_actions = clip_and_norm_actions(m4_data)
 
-    # Actions: motor values of next time step?
-    action_data = np.column_stack((m1_actions[1:], m2_actions[1:], m3_actions[1:], m4_actions[1:]))
+    # Actions: thrust inputs to drone motors
+    # action_data = np.column_stack((m1_actions[1:], m2_actions[1:], m3_actions[1:], m4_actions[1:]))
+    action_data = clip_and_norm_actions(thrust_data)
 
     output_file = folder_path + "actions.csv"
-    action_df = pd.DataFrame({'motor.m1' : action_data[:,0], 'motor.m2' : action_data[:,1], 'motor.m3' : action_data[:,2], 'motor.m4' : action_data[:,3]})
+    action_df = pd.DataFrame({'thrust commands': action_data})
     action_df.to_csv(output_file, index=False)
 
 
@@ -136,11 +153,8 @@ def main():
                                 ang_vel_w, ang_vel_x, ang_vel_y, ang_vel_z, 
                                 m1_data, m2_data, m3_data, m4_data))
     
-    print(state_data[:,0])
     # Normalise state
     state_data = normalise_state(state_data)
-
-    print(state_data[:,0])
 
     output_file = folder_path + "states.csv"
     state_df = pd.DataFrame({'Pos y': state_data[:,0], 'Vel x': state_data[:,1], 'Vel z': state_data[:,2], 
@@ -152,11 +166,11 @@ def main():
 
 
 
+    # TODO: Pick goal position and check orientation in lab
     # Define goal position and orientation
     goal_position = np.array([0.1, 0.0, 0.0]) # [pos_y, vel_x, vel_z]
-    stable_orientation = np.array([0.0, 0.0, 0.0, 0.0]) # orientation when the drone is on a flat surface TODO: check in lab
+    stable_orientation = np.array([0.0, 0.0, 0.0, 0.0]) # orientation when the drone is on a flat surface
 
-    # print(np.array([state_data[:,0], state_data[:,1], state_data[:,2]]))
     # Calc rewards for each state
     rewards = calculate_rewards(state_data, goal_position, stable_orientation)
     print(np.shape(rewards))

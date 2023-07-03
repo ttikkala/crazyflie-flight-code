@@ -2,15 +2,18 @@ import time
 import pandas as pd
 import numpy as np
 
-thrust_file = '~/.config/cfclient/logdata/20230626T11-17-16/Motors-20230626T11-17-20.csv'
+thrust_file = '~/.config/cfclient/logdata/20230703T16-48-50/Stab-20230703T16-52-12.csv'
 data = pd.read_csv(thrust_file)
 
-m1_input = data['motor.m1'].tolist()
-m2_input = data['motor.m2'].tolist()
-m3_input = data['motor.m3'].tolist()
-m4_input = data['motor.m4'].tolist()
+# m1_input = data['motor.m1'].tolist()
+# m2_input = data['motor.m2'].tolist()
+# m3_input = data['motor.m3'].tolist()
+# m4_input = data['motor.m4'].tolist()
 
 stab_thrust_input = data['stabilizer.thrust'].tolist()
+stab_roll_input = data['stabilizer.roll'].tolist()
+stab_pitch_input = data['stabilizer.pitch'].tolist()
+stab_yaw_input = data['stabilizer.yaw'].tolist()
 
 
 def thrust_ramp(scf):
@@ -48,13 +51,20 @@ def thrust_from_file(scf):
     # m3_input = data['motor.m3'].tolist()
     # m4_input = data['motor.m4'].tolist()
 
-    stab_thrust_input = data['stabilizer.thrust'].tolist()
+    # time_flight = data['time'].tolist() / 1000
+
+    stab_thrust_input   = data['stabilizer.thrust'].tolist()
+    stab_roll_input     = data['stabilizer.roll'].tolist()
+    stab_pitch_input    = data['stabilizer.pitch'].tolist()
+    stab_yaw_input      = data['stabilizer.yaw'].tolist()
+    # stab_yawrate_input  = np.gradient(stab_yaw_input, time_flight)
 
     scf.cf.commander.send_setpoint(0, 0, 0, 0)
 
-    for thrust in stab_thrust_input:
-        time.sleep(0.1)
-        scf.cf.commander.send_setpoint(-1.2, -1.8, 0, thrust) # roll, pitch, yawrate, thrust
+    for i in range(len(stab_thrust_input)):
+        time.sleep(0.01)
+        # Send previous flight control data to cf, note that pitch is recorded in the UI as -pitch for some godforsaken reason
+        scf.cf.commander.send_setpoint(stab_roll_input[i], -stab_pitch_input[i], 0, int(stab_thrust_input[i])) # roll, pitch, yawrate, thrust
 
     scf.cf.commander.send_setpoint(0, 0, 0, 0)
     time.sleep(0.1)
