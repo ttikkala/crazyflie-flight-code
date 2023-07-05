@@ -10,10 +10,12 @@ from rlkit.torch.sac.policies import TanhGaussianPolicy
 from rlkit.torch.networks import FlattenMlp
 import numpy as np
 from rl_algorithm import RL_algorithm
-from rlkit.torch.sac.sac import SACTrainer as SoftActorCritic_rlkit
+from rlkit.torch.sac.sac import SACTrainer
 import rlkit.torch.pytorch_util as ptu
 import torch
 import utils
+import matplotlib.pyplot as plt
+import matplotlib
 
 class SoftActorCritic(RL_algorithm):
 
@@ -44,7 +46,7 @@ class SoftActorCritic(RL_algorithm):
         self._batch_size = 64
         self._nmbr_updates = 1000
 
-        self._algorithm = SoftActorCritic_rlkit(
+        self._algorithm = SACTrainer(
             # env=self._env,
             policy=self._policy,
             qf1=self._qf1,
@@ -93,9 +95,6 @@ class SoftActorCritic(RL_algorithm):
         for _ in range(self._nmbr_updates):
             batch = self._replay.random_batch(self._batch_size)
             self._algorithm.train(batch)
-        statistics = self._algorithm.get_diagnostics()
-        print(statistics)
-
 
 
 

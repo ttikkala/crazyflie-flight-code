@@ -8,13 +8,14 @@ import csv
 import torch
 import replay
 import time
+import matplotlib.pyplot as plt
 
 device = 'cuda'  # 'cuda' or 'cpu'
 
 
 # Import data
 # TODO: Change this to be a command line argument
-folder_path = './Mon-Jun-26-12:58:51-2023/'
+folder_path = './Mon-Jul--3-16:55:20-2023/'
 # file_path = str(sys.argv[1])
 state_path = folder_path + 'states.csv'
 rewards_path = folder_path + 'rewards.csv'
@@ -77,11 +78,34 @@ for i in range(np.shape(states)[0] - 1):
 
 
 
+
+
 def main():
+
+    plt.ion()
+
+    x = np.array([0])
+    y = np.array([0])
+
+    plt.ion()
+    fig = plt.figure()
+    ax=fig.add_subplot(111)
+    # ax.set_xlim([0,50])
+    # ax.set_ylim([0,2500])
+    line,  = ax.plot(x,y)
+    plt.show()
+
     print('Training')
-    for _ in range(1000):
+    for i in range(1000):
         agent.single_train_step()
-    print('Done training')
+        statistics = agent._algorithm.get_diagnostics()
+        print(statistics)
+
+        x = np.append(x,i)
+        y = np.append(y,statistics['QF1 Loss'])
+        line.set_data(x,y)
+        plt.pause(0.01)
+
 
 if __name__ == '__main__':
     main()

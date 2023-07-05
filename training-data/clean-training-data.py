@@ -4,8 +4,8 @@ import pandas as pd
 import csv
 import sys
 
-folder_path = './Mon-Jun-26-12:58:51-2023/'
-file_path = './Mon-Jun-26-12:58:51-2023/data.csv'
+folder_path = './Mon-Jul--3-16:55:20-2023/'
+file_path = folder_path + 'data.csv'
 # file_path = str(sys.argv[1])
 
 
@@ -13,34 +13,39 @@ flight_data = pd.read_csv(file_path)
 
 time = np.array(flight_data['Time'].tolist())
 
+# Motor state data
 m1_data = np.array(flight_data['motor.m1'].tolist())
 m2_data = np.array(flight_data['motor.m2'].tolist())
 m3_data = np.array(flight_data['motor.m3'].tolist())
 m4_data = np.array(flight_data['motor.m4'].tolist())
 
-# Disgusting fix for a truly stupid problem
-motor_data_input_path = '~/.config/cfclient/logdata/20230626T11-17-16/Motors-20230626T11-17-20.csv'
-motor_data_input = pd.read_csv(motor_data_input_path)
-thrust_data_temp = np.array(motor_data_input['stabilizer.thrust'].tolist())
-start_idx = np.argmax(thrust_data_temp > 0)
-thrust_data_temp = thrust_data_temp[start_idx:]
-thrust_data = []
+# Input/action data is stored in a different file
+action_data_input_path = './flight_inputs/inputs.csv'
+action_data_input = pd.read_csv(action_data_input_path)
 
-for i in range(len(thrust_data_temp)):
-    for j in range(10):
-        thrust_data.append(thrust_data_temp[i])
+action_time_temp = np.array(action_data_input['Time'].tolist())
+roll_data_temp = np.array(action_data_input['Roll input'].tolist())
+pitch_data_temp = np.array(action_data_input['Pitch input'].tolist())
+yawrate_data_temp = np.array(action_data_input['Yawrate input'].tolist())
+thrust_data_temp = np.array(action_data_input['Thrust input'].tolist())
 
-thrust_data = np.array(thrust_data)
+sync_idx = np.argmax(action_time_temp > time[0])
 
-print(thrust_data)
+action_time = action_time_temp[sync_idx:len(time)]
+roll_data = roll_data_temp[sync_idx:len(time)]
+pitch_data = pitch_data_temp[sync_idx:len(time)]
+yawrate_data = yawrate_data_temp[sync_idx:len(time)]
+thrust_data = thrust_data_temp[sync_idx:len(time)]
 
+
+# Get position and orientation data
 posx_data = np.array(flight_data['Pos x'].tolist())
 posy_data = np.array(flight_data['Pos y'].tolist())
 posz_data = np.array(flight_data['Pos z'].tolist())
-quatw_data = np.array(flight_data['Quat 1'].tolist())
-quatx_data = np.array(flight_data['Quat 2'].tolist())
-quaty_data = np.array(flight_data['Quat 3'].tolist())
-quatz_data = np.array(flight_data['Quat 4'].tolist())
+quatw_data = np.array(flight_data['Quat w'].tolist())
+quatx_data = np.array(flight_data['Quat x'].tolist())
+quaty_data = np.array(flight_data['Quat y'].tolist())
+quatz_data = np.array(flight_data['Quat z'].tolist())
 
 start_time_idx = np.argmax(m1_data > 0)
 
@@ -54,8 +59,6 @@ m2_data = m2_data[start_time_idx:]
 m3_data = m3_data[start_time_idx:]
 m4_data = m4_data[start_time_idx:]
 
-thrust_data = thrust_data[:len(m1_data)]
-
 # Get position and orientation data
 posx_data = posx_data[start_time_idx:]
 posy_data = posy_data[start_time_idx:]
@@ -64,6 +67,14 @@ quatw_data = quatw_data[start_time_idx:]
 quatx_data = quatx_data[start_time_idx:]
 quaty_data = quaty_data[start_time_idx:]
 quatz_data = quatz_data[start_time_idx:]
+
+# Clip action data set to match length of everything else
+action_time = action_time[start_time_idx:]
+roll_data = roll_data_temp[start_time_idx:]
+pitch_data = pitch_data_temp[start_time_idx:]
+yawrate_data = yawrate_data_temp[start_time_idx:]
+thrust_data = thrust_data_temp[start_time_idx:]
+
 
 # Take derivatives to get velocities and angular velocities
 v_x = np.gradient(posx_data, time)

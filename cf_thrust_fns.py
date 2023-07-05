@@ -1,8 +1,13 @@
 import time
 import pandas as pd
 import numpy as np
+import csv
+import os
 
-thrust_file = '~/.config/cfclient/logdata/20230703T16-48-50/Stab-20230703T16-52-12.csv'
+# thrust_file = '~/.config/cfclient/logdata/20230704T10-33-05/Stab-20230704T10-34-00.csv'
+# thrust_file = '~/.config/cfclient/logdata/20230704T11-09-49/Stab-20230704T11-10-42.csv'
+thrust_file = '~/.config/cfclient/logdata/20230704T11-36-14/Stab-20230704T11-38-58.csv'
+
 data = pd.read_csv(thrust_file)
 
 # m1_input = data['motor.m1'].tolist()
@@ -14,6 +19,7 @@ stab_thrust_input = data['stabilizer.thrust'].tolist()
 stab_roll_input = data['stabilizer.roll'].tolist()
 stab_pitch_input = data['stabilizer.pitch'].tolist()
 stab_yaw_input = data['stabilizer.yaw'].tolist()
+
 
 
 def thrust_ramp(scf):
@@ -51,20 +57,27 @@ def thrust_from_file(scf):
     # m3_input = data['motor.m3'].tolist()
     # m4_input = data['motor.m4'].tolist()
 
-    # time_flight = data['time'].tolist() / 1000
+    time_flight = data['Timestamp'].tolist() / 1000
+    time_flight = time_flight - time_flight[0]
 
     stab_thrust_input   = data['stabilizer.thrust'].tolist()
     stab_roll_input     = data['stabilizer.roll'].tolist()
     stab_pitch_input    = data['stabilizer.pitch'].tolist()
     stab_yaw_input      = data['stabilizer.yaw'].tolist()
-    # stab_yawrate_input  = np.gradient(stab_yaw_input, time_flight)
+    stab_yawrate_input  = np.gradient(stab_yaw_input, time_flight)
 
     scf.cf.commander.send_setpoint(0, 0, 0, 0)
 
     for i in range(len(stab_thrust_input)):
         time.sleep(0.01)
         # Send previous flight control data to cf, note that pitch is recorded in the UI as -pitch for some godforsaken reason
-        scf.cf.commander.send_setpoint(stab_roll_input[i], -stab_pitch_input[i], 0, int(stab_thrust_input[i])) # roll, pitch, yawrate, thrust
+        scf.cf.commander.send_setpoint(stab_roll_input[i], -stab_pitch_input[i], stab_yawrate_input[i], int(stab_thrust_input[i])) # roll, pitch, yawrate, thrust
+
+        with open(os.path.join('./flight_inputs',
+            'inputs.csv'), 'a') as fd:
+            cwriter = csv.writer(fd)
+            # print('To csv: ', [time.time()], drone_data, opti_data)
+            cwriter.writerow([time.time(), stab_roll_input[i], -stab_pitch_input[i], stab_yawrate_input[i], int(stab_thrust_input[i])]) # time.time() is time since 'epoch' - Jan 1 1970 00:00
 
     scf.cf.commander.send_setpoint(0, 0, 0, 0)
     time.sleep(0.1)

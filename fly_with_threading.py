@@ -252,6 +252,8 @@ def write_to_csv(file_path, drone_data, opti_data):
         # print(opti_data)
 
 
+
+
 def write_drone_opti(drone_reader, opti_reader, file_path):
 
     while True:
@@ -304,4 +306,4 @@ if __name__ == '__main__':
     drone_thread.start()
     opti_thread.start()
     main_thread.start()
-    
+
