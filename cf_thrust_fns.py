@@ -6,7 +6,16 @@ import os
 
 # thrust_file = '~/.config/cfclient/logdata/20230704T10-33-05/Stab-20230704T10-34-00.csv'
 # thrust_file = '~/.config/cfclient/logdata/20230704T11-09-49/Stab-20230704T11-10-42.csv'
-thrust_file = '~/.config/cfclient/logdata/20230704T11-36-14/Stab-20230704T11-38-58.csv'
+# thrust_file = '~/.config/cfclient/logdata/20230704T11-36-14/Stab-20230704T11-38-58.csv'
+# thrust_file = '~/.config/cfclient/logdata/20230705T13-30-14/Stab-20230705T13-31-35.csv'
+# thrust_file = '~/.config/cfclient/logdata/20230705T14-09-08/Stab-20230705T14-11-53.csv' # Should move forward just a little bit
+# thrust_file = '~/.config/cfclient/logdata/20230705T14-36-06/Stab-20230705T14-37-10.csv'
+# thrust_file = '~/.config/cfclient/logdata/20230705T15-01-05/Stab-20230705T15-02-08.csv'
+
+# thrust_file = '~/.config/cfclient/logdata/20230705T16-09-00/Stab-20230705T16-09-07.csv' # front & back
+# thrust_file = '~/.config/cfclient/logdata/20230705T16-24-01/Stab-20230705T16-24-09.csv' # flies around a bit, hovers for a while, goes slightly to the back left
+
+thrust_file = '~/.config/cfclient/logdata/20230706T09-23-40/Stab-20230706T09-24-15.csv'
 
 data = pd.read_csv(thrust_file)
 
@@ -57,27 +66,38 @@ def thrust_from_file(scf):
     # m3_input = data['motor.m3'].tolist()
     # m4_input = data['motor.m4'].tolist()
 
-    time_flight = data['Timestamp'].tolist() / 1000
+    time_flight = data['Timestamp'] / 1000
     time_flight = time_flight - time_flight[0]
+    time_flight = time_flight.to_numpy()
 
-    stab_thrust_input   = data['stabilizer.thrust'].tolist()
-    stab_roll_input     = data['stabilizer.roll'].tolist()
-    stab_pitch_input    = data['stabilizer.pitch'].tolist()
-    stab_yaw_input      = data['stabilizer.yaw'].tolist()
+    stab_thrust_input   = data['stabilizer.thrust'].to_numpy(copy=True)
+    stab_roll_input     = data['stabilizer.roll'].to_numpy(copy=True)
+    stab_pitch_input    = data['stabilizer.pitch'].to_numpy(copy=True)
+    stab_yaw_input      = data['stabilizer.yaw'].to_numpy(copy=True)
     stab_yawrate_input  = np.gradient(stab_yaw_input, time_flight)
 
+    # Unlock startup thrust protection
     scf.cf.commander.send_setpoint(0, 0, 0, 0)
 
-    for i in range(len(stab_thrust_input)):
-        time.sleep(0.01)
-        # Send previous flight control data to cf, note that pitch is recorded in the UI as -pitch for some godforsaken reason
-        scf.cf.commander.send_setpoint(stab_roll_input[i], -stab_pitch_input[i], stab_yawrate_input[i], int(stab_thrust_input[i])) # roll, pitch, yawrate, thrust
+    bla = []
 
-        with open(os.path.join('./flight_inputs',
-            'inputs.csv'), 'a') as fd:
-            cwriter = csv.writer(fd)
-            # print('To csv: ', [time.time()], drone_data, opti_data)
-            cwriter.writerow([time.time(), stab_roll_input[i], -stab_pitch_input[i], stab_yawrate_input[i], int(stab_thrust_input[i])]) # time.time() is time since 'epoch' - Jan 1 1970 00:00
+    with open(os.path.join('./flight_inputs',
+        'inputs.csv'), 'a') as fd:
+
+        for i in range(len(stab_thrust_input)):
+            time.sleep(0.01)
+            # Send previous flight control data to cf, note that pitch is recorded in the UI as -pitch for some godforsaken reason
+            scf.cf.commander.send_notify_setpoint_stop()
+            scf.cf.commander.send_setpoint(stab_roll_input[i], -stab_pitch_input[i], stab_yawrate_input[i], int(stab_thrust_input[i])) # roll, pitch, yawrate, thrust
+            bla.append([time.time(), stab_roll_input[i], -stab_pitch_input[i], stab_yawrate_input[i], int(stab_thrust_input[i])])
+
+
+            if len(bla) > 100:
+                cwriter = csv.writer(fd)
+                cwriter.writerows(bla)
+                bla = []
+            # cwriter = csv.writer(fd)
+            # cwriter.writerow([time.time(), stab_roll_input[i], -stab_pitch_input[i], stab_yawrate_input[i], int(stab_thrust_input[i])])
 
     scf.cf.commander.send_setpoint(0, 0, 0, 0)
     time.sleep(0.1)
