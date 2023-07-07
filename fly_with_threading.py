@@ -119,6 +119,8 @@ def fly_drone():
             # ramp_motors(scf)
             # cf_thrust_fns.motors_from_file(scf)
 
+
+
             lg_motor.stop()
             
         except KeyboardInterrupt:

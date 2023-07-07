@@ -21,7 +21,7 @@ import attr
 import natnet
 
 
-# file_extension = str(time.ctime().replace(' ', '_'))
+file_extension = str(time.ctime().replace(' ', '_'))
 
 @attr.s
 class ClientApp(object):
@@ -64,12 +64,12 @@ class ClientApp(object):
                     b.id_, *(b.position + b.orientation)
                 ))
                 
-                # file_path = './' + 'mocap_data' + '/' + file_extension
+                file_path = './' + 'mocap_data' + '/' + file_extension
 
-                # with open(os.path.join(file_path,
-                #         'data.csv'), 'a') as fd:
-                #     cwriter = csv.writer(fd)
-                #     cwriter.writerow([time.time(), b.id_, *(b.position + b.orientation)]) # time.time() is time since 'epoch' - Jan 1 1970 00:00:00
+                with open(os.path.join(file_path,
+                        'data.csv'), 'a') as fd:
+                    cwriter = csv.writer(fd)
+                    cwriter.writerow([time.time(), b.id_, *(b.position + b.orientation)]) # time.time() is time since 'epoch' - Jan 1 1970 00:00:00
 
         if markers:
             print('Markers')
@@ -99,18 +99,18 @@ def main():
     args = parser.parse_args()
 
 
-    # folder = 'mocap_data'
-    # file_path = './' + folder + '/' + file_extension
+    folder = 'mocap_data'
+    file_path = './' + folder + '/' + file_extension
 
-    # # Create experiment folder
-    # if not os.path.exists(file_path):
-    #     os.makedirs(file_path)
+    # Create experiment folder
+    if not os.path.exists(file_path):
+        os.makedirs(file_path)
 
     
-    # with open(os.path.join(file_path,
-    #         'data.csv'), 'a') as fd:
-    #     cwriter = csv.writer(fd)
-    #     cwriter.writerow(['Time', 'ID', 'Pos x', 'Pos y', 'Pos z', 'Rot 1', 'Rot 2', 'Rot 3', 'Rot 4']) # time.time() is time since 'epoch' - Jan 1 1970 00:00
+    with open(os.path.join(file_path,
+            'data.csv'), 'a') as fd:
+        cwriter = csv.writer(fd)
+        cwriter.writerow(['Time', 'ID', 'Pos x', 'Pos y', 'Pos z', 'Quat w', 'Quat x', 'Quat y', 'Quat z']) # time.time() is time since 'epoch' - Jan 1 1970 00:00
 
 
     try:

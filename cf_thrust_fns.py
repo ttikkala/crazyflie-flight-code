@@ -12,10 +12,10 @@ import os
 # thrust_file = '~/.config/cfclient/logdata/20230705T14-36-06/Stab-20230705T14-37-10.csv'
 # thrust_file = '~/.config/cfclient/logdata/20230705T15-01-05/Stab-20230705T15-02-08.csv'
 
-# thrust_file = '~/.config/cfclient/logdata/20230705T16-09-00/Stab-20230705T16-09-07.csv' # front & back
+thrust_file = '~/.config/cfclient/logdata/20230705T16-09-00/Stab-20230705T16-09-07.csv' # front & back
 # thrust_file = '~/.config/cfclient/logdata/20230705T16-24-01/Stab-20230705T16-24-09.csv' # flies around a bit, hovers for a while, goes slightly to the back left
 
-thrust_file = '~/.config/cfclient/logdata/20230706T09-23-40/Stab-20230706T09-24-15.csv'
+# thrust_file = '~/.config/cfclient/logdata/20230706T09-23-40/Stab-20230706T09-24-15.csv'
 
 data = pd.read_csv(thrust_file)
 
@@ -81,21 +81,23 @@ def thrust_from_file(scf):
 
     bla = []
 
-    with open(os.path.join('./flight_inputs',
-        'inputs.csv'), 'a') as fd:
+    # with open(os.path.join('./flight_inputs',
+    #     'inputs.csv'), 'a') as fd:
 
-        for i in range(len(stab_thrust_input)):
-            time.sleep(0.01)
-            # Send previous flight control data to cf, note that pitch is recorded in the UI as -pitch for some godforsaken reason
-            scf.cf.commander.send_notify_setpoint_stop()
-            scf.cf.commander.send_setpoint(stab_roll_input[i], -stab_pitch_input[i], stab_yawrate_input[i], int(stab_thrust_input[i])) # roll, pitch, yawrate, thrust
-            bla.append([time.time(), stab_roll_input[i], -stab_pitch_input[i], stab_yawrate_input[i], int(stab_thrust_input[i])])
+    for i in range(len(stab_thrust_input)):
+        #if not i % 10 == 0:
+        #    continue
+        time.sleep(0.01)
+        # Send previous flight control data to cf, note that pitch is recorded in the UI as -pitch for some godforsaken reason
+        scf.cf.commander.send_notify_setpoint_stop(10)
+        scf.cf.commander.send_setpoint(stab_roll_input[i], -stab_pitch_input[i], stab_yawrate_input[i], int(stab_thrust_input[i])) # roll, pitch, yawrate, thrust
+        # bla.append([time.time(), stab_roll_input[i], -stab_pitch_input[i], stab_yawrate_input[i], int(stab_thrust_input[i])])
 
 
-            if len(bla) > 100:
-                cwriter = csv.writer(fd)
-                cwriter.writerows(bla)
-                bla = []
+            # if len(bla) > 100:
+            #     cwriter = csv.writer(fd)
+            #     cwriter.writerows(bla)
+            #     bla = []
             # cwriter = csv.writer(fd)
             # cwriter.writerow([time.time(), stab_roll_input[i], -stab_pitch_input[i], stab_yawrate_input[i], int(stab_thrust_input[i])])
 
