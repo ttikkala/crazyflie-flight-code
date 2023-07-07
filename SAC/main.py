@@ -15,7 +15,7 @@ device = 'cuda'  # 'cuda' or 'cpu'
 
 # Import data
 # TODO: Change this to be a command line argument
-folder_path = './Mon-Jul--3-16:55:20-2023/'
+folder_path = './'
 # file_path = str(sys.argv[1])
 state_path = folder_path + 'states.csv'
 rewards_path = folder_path + 'rewards.csv'

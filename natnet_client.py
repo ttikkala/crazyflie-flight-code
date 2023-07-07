@@ -21,7 +21,7 @@ import attr
 import natnet
 
 
-file_extension = str(time.ctime().replace(' ', '_'))
+file_extension = str(time.ctime().replace(' ', '-'))
 
 @attr.s
 class ClientApp(object):
@@ -64,7 +64,7 @@ class ClientApp(object):
                     b.id_, *(b.position + b.orientation)
                 ))
                 
-                file_path = './' + 'mocap_data' + '/' + file_extension
+                file_path = './' + 'mocap-data' + '/' + file_extension
 
                 with open(os.path.join(file_path,
                         'data.csv'), 'a') as fd:
@@ -99,7 +99,7 @@ def main():
     args = parser.parse_args()
 
 
-    folder = 'mocap_data'
+    folder = 'mocap-data'
     file_path = './' + folder + '/' + file_extension
 
     # Create experiment folder
@@ -110,7 +110,7 @@ def main():
     with open(os.path.join(file_path,
             'data.csv'), 'a') as fd:
         cwriter = csv.writer(fd)
-        cwriter.writerow(['Time', 'ID', 'Pos x', 'Pos y', 'Pos z', 'Quat w', 'Quat x', 'Quat y', 'Quat z']) # time.time() is time since 'epoch' - Jan 1 1970 00:00
+        cwriter.writerow(['Timestamp', 'ID', 'Pos x', 'Pos y', 'Pos z', 'Quat w', 'Quat x', 'Quat y', 'Quat z']) # time.time() is time since 'epoch' - Jan 1 1970 00:00
 
 
     try:
