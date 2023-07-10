@@ -5,6 +5,13 @@ import csv
 import sys
 import os
 
+"""
+This file adapts the flight data timestamps to the real time timestamps.
+CF originally records timestamps as ms from starting the client, but we need the real time to sync it with the mocap data.
+"""
+
+
+
 # TODO: Change these to be command line arguments
 # Get flight input and mocap data
 folder_path_drone = '20230706T16-15-00/'

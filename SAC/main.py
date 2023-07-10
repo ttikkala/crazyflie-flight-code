@@ -8,12 +8,18 @@ import csv
 import torch
 import replay
 import time
-# import matplotlib
-# matplotlib.use('TKAgg')
 import matplotlib.pyplot as plt
-# from matplotlib.animation import FuncAnimation
 import drawnow
 
+"""
+Main file for training the SAC algorithm.
+
+First imports data, then initialises the replay buffer and the networks.
+Then the algortihm is trained using rlkit's implementation of SAC.
+The training stats are written to file. 
+
+Next the trained policy should probably be saved somewhere.
+"""
 
 # Import data
 # TODO: Change this to be a command line argument

@@ -1,4 +1,4 @@
-# This file contains the replay buffer from rlkit
+# This file contains the replay buffer from rlkit, right now using the simplest replay buffer
 
 
 import abc
