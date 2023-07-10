@@ -15,9 +15,6 @@ import matplotlib.pyplot as plt
 import drawnow
 
 
-device = 'cuda'  # 'cuda' or 'cpu'
-
-
 # Import data
 # TODO: Change this to be a command line argument
 folder_path = './'
@@ -51,15 +48,6 @@ networks = soft_actor_critic.SoftActorCritic._create_networks(obs_dim=observatio
 agent = soft_actor_critic.SoftActorCritic(replay=replay, networks=networks)
 
 
-# # store data
-# folder = 'training_runs'
-# file_path = './' + folder + '/' + time.ctime().replace(' ', '_')
-# # Create experiment folder
-# if not os.path.exists(file_path):
-#     os.makedirs(file_path)
-
-
-
 
 # Populate replay buffer with collected flight data
 for i in range(np.shape(states)[0] - 1):
@@ -71,39 +59,7 @@ for i in range(np.shape(states)[0] - 1):
                       env_info={})
 
 
-# def save_logged_data(file_path, rewards_training):
-#     """ Saves logged rewards to a csv file.
-#     """
-#     with open(
-#         os.path.join(file_path,
-#             'rewards.csv'), 'a') as fd:
-#             cwriter = csv.writer(fd)
-#             cwriter.writerow(rewards_training)
-
-
-# def draw_fig():
-#     plt.plot(x,y)
-
-# x = []
-# y = []
-# plt.ion()  # enable interactivity
-# fig = plt.figure()  # make a figure
-
-
-# plt.ion()
-# fig = plt.figure()
-# ax=fig.add_subplot(111)
-# ax.set_xlim([0,50])
-# ax.set_ylim([0,20])
-# ax.plot(x,y)
-# plt.show()
-
-
-
-# # Create experiment folder
-# if not os.path.exists(file_path):
-#     os.makedirs(file_path)
-
+# Store training results
 file_path = 'losses-' + time.ctime().replace(' ', '-') + '.csv'
 
 with open(file_path, 'a') as fd:
@@ -116,16 +72,15 @@ with open(file_path, 'a') as fd:
                       'Policy log std Mean', 'Policy log std Std', 'Policy log std Max', 'Policy log std Min']) 
 
 
+# Start training
 print('Training')
 for i in range(1000):
     agent.single_train_step()
     statistics = agent._algorithm.get_diagnostics()
     print(statistics)
 
-    # x.append(i)
-    # y.append(statistics['QF1 Loss'])
-    # drawnow.drawnow(draw_fig)
 
+    # Training stats to file
     with open(file_path, 'a') as fd:
         cwriter = csv.writer(fd)
         cwriter.writerow([i, statistics['QF1 Loss'], statistics['QF2 Loss'], 

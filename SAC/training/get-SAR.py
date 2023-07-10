@@ -102,7 +102,7 @@ def clip_and_norm_thrust(data):
     return data
 
 def clip_and_norm_actions(actions):
-    # Clip and normalise all other actions through Z-score
+    # Clip and normalise actions through Z-score
     for i in range(np.shape(actions)[1]):
         mean = np.mean(actions[:,i])
         std = np.std(actions[:,i])
@@ -127,6 +127,8 @@ def normalise_state(state):
 def calculate_rewards(state, goal_position, stable_orientation):
     # Calculate rewards
     # maximise -sqrt( (curr pos - goal pos)**2 + (curr orientation - stable orientation)**2 )
+    # TODO: only include pitch & roll in orientation error?
+    # TODO: should different parts of reward be weighted differently?
 
     pos_error = np.array([state[:,0], state[:,1], state[:,2]]).transpose() - goal_position
     orientation_error = np.array([state[:,3], state[:,4], state[:,5], state[:,6]]).transpose() - stable_orientation

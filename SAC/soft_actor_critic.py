@@ -164,6 +164,8 @@ class SoftActorCritic(RL_algorithm):
             action_dim=action_dim,
         ).to(device=ptu.device)
 
+        print('Device: ', ptu.device)
+
         clip_value = 1.0
         for p in qf1.parameters():
             p.register_hook(lambda grad: torch.clamp(grad, -clip_value, clip_value))
@@ -203,3 +205,5 @@ class SoftActorCritic(RL_algorithm):
             The policy network as torch object.
         """
         return networks['policy']
+    
+
