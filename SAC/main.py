@@ -8,7 +8,12 @@ import csv
 import torch
 import replay
 import time
+# import matplotlib
+# matplotlib.use('TKAgg')
 import matplotlib.pyplot as plt
+# from matplotlib.animation import FuncAnimation
+import drawnow
+
 
 device = 'cuda'  # 'cuda' or 'cpu'
 
@@ -76,36 +81,60 @@ for i in range(np.shape(states)[0] - 1):
 #             cwriter.writerow(rewards_training)
 
 
+# def draw_fig():
+#     plt.plot(x,y)
+
+# x = []
+# y = []
+# plt.ion()  # enable interactivity
+# fig = plt.figure()  # make a figure
+
+
+# plt.ion()
+# fig = plt.figure()
+# ax=fig.add_subplot(111)
+# ax.set_xlim([0,50])
+# ax.set_ylim([0,20])
+# ax.plot(x,y)
+# plt.show()
+
+
+
+# # Create experiment folder
+# if not os.path.exists(file_path):
+#     os.makedirs(file_path)
+
+file_path = 'losses-' + time.ctime().replace(' ', '-') + '.csv'
+
+with open(file_path, 'a') as fd:
+    cwriter = csv.writer(fd)
+    cwriter.writerow(['Training step', 'QF1 Loss', 'QF2 Loss', 
+                      'Policy Loss', 'Q1 Predictions Mean', 'Q1 Predictions Std', 'Q1 Predictions Max', 
+                      'Q2 Predictions Min', 'Q Targets Mean', 'Q Targets Std', 'Q Targets Max', 'Q Targets Min', 
+                      'Log Pis Mean', 'Log Pis Std', 'Log Pis Max', 'Log Pis Min', 
+                      'Policy mu Mean', 'Policy mu Std', 'Policy mu Max', 'Policy mu Min', 
+                      'Policy log std Mean', 'Policy log std Std', 'Policy log std Max', 'Policy log std Min']) 
+
+
+print('Training')
+for i in range(1000):
+    agent.single_train_step()
+    statistics = agent._algorithm.get_diagnostics()
+    print(statistics)
+
+    # x.append(i)
+    # y.append(statistics['QF1 Loss'])
+    # drawnow.drawnow(draw_fig)
+
+    with open(file_path, 'a') as fd:
+        cwriter = csv.writer(fd)
+        cwriter.writerow([i, statistics['QF1 Loss'], statistics['QF2 Loss'], 
+                    statistics['Policy Loss'], statistics['Q1 Predictions Mean'], statistics['Q1 Predictions Std'], statistics['Q1 Predictions Max'], 
+                    statistics['Q2 Predictions Min'], statistics['Q Targets Mean'], statistics['Q Targets Std'], statistics['Q Targets Max'], statistics['Q Targets Min'], 
+                    statistics['Log Pis Mean'], statistics['Log Pis Std'], statistics['Log Pis Max'], statistics['Log Pis Min'], 
+                    statistics['Policy mu Mean'], statistics['Policy mu Std'], statistics['Policy mu Max'], statistics['Policy mu Min'], 
+                    statistics['Policy log std Mean'], statistics['Policy log std Std'], statistics['Policy log std Max'], statistics['Policy log std Min']]) # time.time() is time since 'epoch' - Jan 1 1970 00:00:00
 
 
 
 
-def main():
-
-    plt.ion()
-
-    x = np.array([0])
-    y = np.array([0])
-
-    plt.ion()
-    fig = plt.figure()
-    ax=fig.add_subplot(111)
-    # ax.set_xlim([0,50])
-    # ax.set_ylim([0,2500])
-    line,  = ax.plot(x,y)
-    plt.show()
-
-    print('Training')
-    for i in range(1000):
-        agent.single_train_step()
-        statistics = agent._algorithm.get_diagnostics()
-        print(statistics)
-
-        x = np.append(x,i)
-        y = np.append(y,statistics['QF1 Loss'])
-        line.set_data(x,y)
-        plt.pause(0.01)
-
-
-if __name__ == '__main__':
-    main()

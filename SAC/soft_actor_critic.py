@@ -66,7 +66,7 @@ class SoftActorCritic(RL_algorithm):
         In this case basically creates a fresh instance of SAC for the
         individual networks and copies the values of the target network.
         """
-        self._algorithm = SoftActorCritic_rlkit(
+        self._algorithm = SACTrainer(
             # env=self._env,
             policy=self._policy,
             qf1=self._qf1,
