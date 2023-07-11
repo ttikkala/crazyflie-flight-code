@@ -80,10 +80,10 @@ with open(file_path, 'a') as fd:
 
 # Start training
 print('Training')
-for i in range(1000):
+for i in range(500):
     agent.single_train_step()
     statistics = agent._algorithm.get_diagnostics()
-    print(statistics)
+    print(i, statistics)
 
 
     # Training stats to file
@@ -96,6 +96,6 @@ for i in range(1000):
                     statistics['Policy mu Mean'], statistics['Policy mu Std'], statistics['Policy mu Max'], statistics['Policy mu Min'], 
                     statistics['Policy log std Mean'], statistics['Policy log std Std'], statistics['Policy log std Max'], statistics['Policy log std Min']]) # time.time() is time since 'epoch' - Jan 1 1970 00:00:00
 
-
-
+torch.save(agent._algorithm.policy, 'policy.pt')
+torch.save(agent._algorithm.qf1, 'qf1.pt')
 
