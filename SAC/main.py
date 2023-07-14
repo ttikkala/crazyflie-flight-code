@@ -21,6 +21,9 @@ The training stats are written to file.
 Next the trained policy should probably be saved somewhere.
 """
 
+
+
+
 # Import data
 # TODO: Change this to be a command line argument
 folder_path = './'
@@ -50,24 +53,24 @@ replay = replay.SimpleReplayBuffer(
 # initialise networks qf1, qf2, qf1_target, qf2_target, policy
 networks = soft_actor_critic.SoftActorCritic._create_networks(obs_dim=observation_dim, action_dim=action_dim)
 
-# Initialise SAC algorithm
+# Initialise SAC agent
 agent = soft_actor_critic.SoftActorCritic(replay=replay, networks=networks)
 
 
 
 # Populate replay buffer with collected flight data
+# TODO: Figure out if terminal state matters for real-world data
 for i in range(np.shape(states)[0] - 1):
     replay.add_sample(observation=states[i], 
                       action=actions[i], 
                       reward=rewards[i], 
                       next_observation=states[i+1], 
-                      terminal=0, # Not sure what to put here?
+                      terminal=0, 
                       env_info={})
 
 
-# Store training results
+# File path for training results
 file_path = 'losses-' + time.ctime().replace(' ', '-') + '.csv'
-
 with open(file_path, 'a') as fd:
     cwriter = csv.writer(fd)
     cwriter.writerow(['Training step', 'QF1 Loss', 'QF2 Loss', 
@@ -78,24 +81,42 @@ with open(file_path, 'a') as fd:
                       'Policy log std Mean', 'Policy log std Std', 'Policy log std Max', 'Policy log std Min']) 
 
 
-# Start training
-print('Training')
-for i in range(500):
-    agent.single_train_step()
-    statistics = agent._algorithm.get_diagnostics()
-    print(i, statistics)
 
 
-    # Training stats to file
-    with open(file_path, 'a') as fd:
-        cwriter = csv.writer(fd)
-        cwriter.writerow([i, statistics['QF1 Loss'], statistics['QF2 Loss'], 
-                    statistics['Policy Loss'], statistics['Q1 Predictions Mean'], statistics['Q1 Predictions Std'], statistics['Q1 Predictions Max'], 
-                    statistics['Q2 Predictions Min'], statistics['Q Targets Mean'], statistics['Q Targets Std'], statistics['Q Targets Max'], statistics['Q Targets Min'], 
-                    statistics['Log Pis Mean'], statistics['Log Pis Std'], statistics['Log Pis Max'], statistics['Log Pis Min'], 
-                    statistics['Policy mu Mean'], statistics['Policy mu Std'], statistics['Policy mu Max'], statistics['Policy mu Min'], 
-                    statistics['Policy log std Mean'], statistics['Policy log std Std'], statistics['Policy log std Max'], statistics['Policy log std Min']]) # time.time() is time since 'epoch' - Jan 1 1970 00:00:00
+try:
+    # Start training
+    for i in range(1000):
+        agent.single_train_step()
 
+        # Print training stats; losses etc
+        statistics = agent._algorithm.get_diagnostics()
+        print(i, statistics)
+
+
+        # Training stats to file
+        with open(file_path, 'a') as fd:
+            cwriter = csv.writer(fd)
+            cwriter.writerow([i, statistics['QF1 Loss'], statistics['QF2 Loss'], 
+                        statistics['Policy Loss'], statistics['Q1 Predictions Mean'], statistics['Q1 Predictions Std'], statistics['Q1 Predictions Max'], 
+                        statistics['Q2 Predictions Min'], statistics['Q Targets Mean'], statistics['Q Targets Std'], statistics['Q Targets Max'], statistics['Q Targets Min'], 
+                        statistics['Log Pis Mean'], statistics['Log Pis Std'], statistics['Log Pis Max'], statistics['Log Pis Min'], 
+                        statistics['Policy mu Mean'], statistics['Policy mu Std'], statistics['Policy mu Max'], statistics['Policy mu Min'], 
+                        statistics['Policy log std Mean'], statistics['Policy log std Std'], statistics['Policy log std Max'], statistics['Policy log std Min']]) # time.time() is time since 'epoch' - Jan 1 1970 00:00:00
+
+
+except KeyboardInterrupt:
+    # Save policy and Q-function networks torch objects for future use in case of ctrl+C
+    torch.save(agent._algorithm.policy, 'policy.pt')
+    torch.save(agent._algorithm.qf1, 'qf1.pt')
+    torch.save(agent._algorithm.qf2, 'qf2.pt')
+    torch.save(agent._algorithm.qf1_target, 'qf1_target.pt')
+    torch.save(agent._algorithm.qf2_target, 'qf2_target.pt')
+
+
+
+# Save policy and Q-function networks torch objects for future use
 torch.save(agent._algorithm.policy, 'policy.pt')
 torch.save(agent._algorithm.qf1, 'qf1.pt')
-
+torch.save(agent._algorithm.qf2, 'qf2.pt')
+torch.save(agent._algorithm.qf1_target, 'qf1_target.pt')
+torch.save(agent._algorithm.qf2_target, 'qf2_target.pt')

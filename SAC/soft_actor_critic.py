@@ -74,9 +74,14 @@ class SoftActorCritic(RL_algorithm):
         A single training step.
         """
 
-        for _ in range(self._nmbr_updates):
+        for i in range(self._nmbr_updates):
             batch = self._replay.random_batch(self._batch_size)
             self._algorithm.train(batch)
+            if i == self._nmbr_updates - 1:
+                print('Double update on one batch')
+                print(self._algorithm.get_diagnostics())
+                self._algorithm.train(batch)
+
 
 
     @staticmethod

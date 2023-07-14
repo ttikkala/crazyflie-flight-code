@@ -18,13 +18,13 @@ and saves to csv file.
 
 # TODO: Change these to be command line arguments, maybe merge all flight data into one file
 # Get flight input and mocap data
-folder_path_drone = '20230706T15-56-55/'
-file_path_battery = './' + folder_path_drone + 'Battery-20230706T15-57-04-timestamped.csv'
-file_path_motors = './' + folder_path_drone + 'Motors_fast-20230706T15-57-04-timestamped.csv'
-file_path_stab = './' + folder_path_drone + 'Stab-20230706T15-57-03-timestamped.csv'
+folder_path_drone = '20230706T16-03-59/'
+file_path_battery = './' + folder_path_drone + 'Battery-20230706T16-04-09-timestamped.csv'
+file_path_motors = './' + folder_path_drone + 'Motors_fast-20230706T16-04-08-timestamped.csv'
+file_path_stab = './' + folder_path_drone + 'Stab-20230706T16-04-07-timestamped.csv'
 
 folder_path_mocap = './mocap_data/'
-file_path_mocap = folder_path_mocap + 'Thu_Jul__6_15:57:09_2023/data.csv'
+file_path_mocap = folder_path_mocap + 'Thu_Jul__6_16:04:18_2023/data.csv'
 
 battery_data = pd.read_csv(file_path_battery)
 motors_data = pd.read_csv(file_path_motors)
@@ -34,7 +34,7 @@ mocap_data = pd.read_csv(file_path_mocap)
 
 # Use mocap data as base for syncing since it has highest data rate
 # Sync data sets by linear interpolation
-# TODO: check if pitch should be negative
+# TODO: check if pitch should be negative or not
 action_pitch    = - np.interp(mocap_data['Timestamp'], stab_data['Timestamp'], stab_data['stabilizer.pitch'])
 action_roll     = np.interp(mocap_data['Timestamp'], stab_data['Timestamp'], stab_data['stabilizer.roll'])
 action_yaw      = np.interp(mocap_data['Timestamp'], stab_data['Timestamp'], stab_data['stabilizer.yaw'])
@@ -91,13 +91,18 @@ def clip_and_norm_thrust(data):
 
 def clip_and_norm_actions(actions):
     # Clip and normalise actions through Z-score
+    means = []
+    stds = []
+
     for i in range(np.shape(actions)[1]):
         mean = np.mean(actions[:,i])
         std = np.std(actions[:,i])
+        means.append(mean)
+        stds.append(std)
         actions[:,i] = (actions[:,i] - mean) / std
         actions[:,i] = np.clip(actions[:,i], -1, 1)
 
-    return actions
+    return actions, means, stds
 
 def normalise_state(state):
     # Normalise states through Z-score
@@ -110,6 +115,8 @@ def normalise_state(state):
         means.append(mean)
         stds.append(std)
         state[:,i] = (state[:,i] - mean) / std 
+        state[:,i] = np.clip(state[:,i], -1, 1)
+        state[:,i] *= 5
 
     return state, means, stds
 
@@ -117,6 +124,7 @@ def calculate_rewards(state, goal_position, stable_orientation):
     # Calculate rewards using error between current state and goal state
     # Goal state defined by an arbitrary height, 0 velocity and orientation from when the drone is on the ground
     # --> maximise -sqrt( (curr pos - goal pos)**2 + (curr orientation - stable orientation)**2 )
+    # wrap it in an exponential to ensure rewards stay small
 
     # TODO: only include pitch & roll in orientation error?
     # TODO: should different parts of reward be weighted differently?
@@ -125,7 +133,7 @@ def calculate_rewards(state, goal_position, stable_orientation):
     orientation_error = np.array([state[:,3], state[:,4], state[:,5], state[:,6]]).transpose() - stable_orientation
 
     # Take the norm of each error vector separately to get a vector of rewards https://stackoverflow.com/questions/7741878/how-to-apply-numpy-linalg-norm-to-each-row-of-a-matrix
-    rewards = -(np.sum(np.abs(pos_error)**2, axis = -1)**(1./2) + np.sum(np.abs(orientation_error)**2, axis = -1)**(1./2))
+    rewards = np.exp( - (np.sum(np.abs(pos_error)**2, axis = -1)**(1./2) + np.sum(np.abs(orientation_error)**2, axis = -1)**(1./2))) 
 
     return rewards
 
@@ -137,7 +145,7 @@ def main():
     # Actions: commander inputs to CF firmware as (roll, pitch, yawrate, thrust)
     action_data = np.column_stack((action_roll, action_pitch, action_yawrate, action_thrust))
     
-    action_data = clip_and_norm_actions(action_data)
+    action_data, ac_means, ac_stds = clip_and_norm_actions(action_data)
 
     output_file = "./" + "actions.csv"
     action_df = pd.DataFrame({'roll commands': action_data[:,0], 
@@ -155,7 +163,7 @@ def main():
                                 state_battery))
     
     # Normalise states
-    state_data, means, stds = normalise_state(state_data)
+    state_data, state_means, state_stds = normalise_state(state_data)
     # state_data *= 5
 
     output_file = "./" + "states.csv"
@@ -171,7 +179,7 @@ def main():
     # Define goal position and orientation
     goal_alt = 0.4 # [m]
     # Normalise goal altitude, 0 velocity in x and z 
-    goal_position = np.array([((goal_alt - means[0]) / stds[0]), 0.0, 0.0]) # [pos_y, vel_x, vel_z]
+    goal_position = np.array([((goal_alt - state_means[0]) / state_stds[0]), ((0.0 - state_means[1]) / state_stds[1]), ((0.0 - state_means[2]) / state_stds[2])]) # [pos_y, vel_x, vel_z]
     
     # Goal orientation when the drone is on a flat surface, average of first 10 samples
     stable_orientation = np.array([np.mean(state_data[:10,7]), np.mean(state_data[:10,8]), np.mean(state_data[:10,9]), np.mean(state_data[:10,10])]) 
@@ -182,6 +190,16 @@ def main():
     output_file = "./" + "rewards.csv"
     reward_df = pd.DataFrame({'Rewards': rewards})
     reward_df.to_csv(output_file, index=False)
+
+
+    # Save actions means, stds and state means, stds to csv
+    output_file = "./" + "action_means_stds.csv"
+    ac_means_stds_df = pd.DataFrame({'Action means': ac_means, 'Action stds': ac_stds})
+    ac_means_stds_df.to_csv(output_file, index=False)
+    output_file = "./" + "state_means_stds.csv"
+    state_means_stds_df = pd.DataFrame({'State means': state_means, 'State stds': state_stds})
+    state_means_stds_df.to_csv(output_file, index=False)
+
 
 
 
