@@ -86,6 +86,7 @@ def command_from_network(scf):
         sac_reader.lock.release()
         time.sleep(0.02) # 50 Hz
 
+    print('Command: ', action[0], action[1], action[2], action[3])
     # time.sleep(0.1)
     scf.cf.commander.send_setpoint(action[0], action[1], action[2], action[3]) # roll, pitch, yawrate, thrust
 
@@ -197,6 +198,7 @@ def natnet_main():
     except natnet.DiscoveryError as e:
         print('Error:', e)
 
+###### THREADING DATA SHARING OBJECT ######
 class DataReader(object):
 
     def __init__(self, start = []):
@@ -231,6 +233,7 @@ def normalise_state(state):
 def action_to_drone_command(action):
     global action_means_stds
 
+    # TODO: torch detach to go from tensor to array?
     for i in range(np.shape(action)):
         action[i] = (action[i] * action_means_stds['Actions means'][i]) + action_means_stds['Action stds'][i] 
 
