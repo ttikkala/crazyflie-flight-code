@@ -18,34 +18,40 @@ import logging
 
 import threading
 
-# Load policy
-policy = torch.load('policy.pt')
 
+###
+# This file contains the code for sending the SAC inputs to the Crazyflie
+#
+# The rough outline of the code is as follows:
 # Initialise threads; one for drone data and control, one for OptiTrack data, one for policy network
-
-
 # Get state in real-time from OptiTrack and drone
-
-
 # Transform state to normalised state and clip
-
-
 # Get action from policy
-
-
 # Transform action to drone command
-
-
 # Send command to drone
-
-
-# Update policy based on reward?
-
-
+# TODO: Update policy based on reward after each flight
+###
 
 
 
 
+# Load policy that was trained using SAC/main.py
+policy = torch.load('./SAC/training/policy.pt')
+
+# Initialise values used for SAC calculations
+t_prev = time.time()
+x_prev = 0.0
+z_prev = 0.0
+qx_prev = 0.0
+qy_prev = 0.0
+qz_prev = 0.0
+qw_prev = 0.0
+
+# Get means and stds used for SAC normalisation from file
+state_means_stds = pd.read_csv('./SAC/training/state_means_stds.csv')
+action_means_stds = pd.read_csv('./SAC/training/action_means_stds.csv')
+
+###### CRAZYFLIE DRONE CODE ######
 # Crazyflie initialise radio connection
 uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 # Only output errors from the logging framework
@@ -69,10 +75,19 @@ def log_callback(timestamp, data, logconf):
     drone_reader.read_data(drone_signals)
 
 
-def command_from_network(scf, roll, pitch, yawrate, thrust):
+def command_from_network(scf):
+    global sac_reader
+
+    sac_reader.lock.acquire()
+    try:
+        action = sac_reader.value
+        # print('Drone lock acquired, drone data: ', drone_data)
+    finally:
+        sac_reader.lock.release()
+        time.sleep(0.02) # 50 Hz
 
     # time.sleep(0.1)
-    scf.cf.commander.send_setpoint(roll, pitch, yawrate, thrust) # roll, pitch, yawrate, thrust
+    scf.cf.commander.send_setpoint(action[0], action[1], action[2], action[3]) # roll, pitch, yawrate, thrust
 
 
 
@@ -114,6 +129,7 @@ def fly_drone():
         scf.cf.close_link()
     
 
+###### OPTITRACK CODE ######
 # Natnet SDK connection to optitrack data stream
 @attr.s
 class ClientApp(object):
@@ -200,10 +216,33 @@ class DataReader(object):
         
         # time.sleep(0.01)
 
+###### SAC CODE ######
+def normalise_state(state):
+    global state_means_stds
+
+    for i in range(np.shape(state)):
+        state[i] = (state[i] - state_means_stds['State means'][i]) / state_means_stds['State stds'][i] 
+        state[i] = np.clip(state[i], -1, 1)
+        state[i] *= 5
+
+    return state
+
+
+def action_to_drone_command(action):
+    global action_means_stds
+
+    for i in range(np.shape(action)):
+        action[i] = (action[i] * action_means_stds['Actions means'][i]) + action_means_stds['Action stds'][i] 
+
+    return action
+
 
 def get_action(policy, drone_reader, opti_reader):
+    global t_prev, x_prev, z_prev, qx_prev, qy_prev, qz_prev, qw_prev
 
-    while True:
+    start_time = time.time()
+
+    while (time.time() - start_time < 1.0):
         # Get state in real-time from OptiTrack and drone
         drone_reader.lock.acquire()
         try:
@@ -223,7 +262,7 @@ def get_action(policy, drone_reader, opti_reader):
 
 
         # drone_data is in the form [m1, m2, m3, m4, vbat]
-        # opti_data is in the form [id, x, y, z, qx, qy, qz, qw]
+        # opti_data is in the form  [id, x,  y,  z,  qx, qy, qz, qw]
         y    = opti_data[2]
         qx   = opti_data[4]
         qy   = opti_data[5]
@@ -236,14 +275,23 @@ def get_action(policy, drone_reader, opti_reader):
         vbat = drone_data[4]
         
 
-        # TODO: need timestep somehow and previous state
-        timestep = 0.01  
+        # Calculate velocities and angular velocities
+        timestep = time.time() - t_prev
         vx       = abs(opti_data[1] - x_prev) / timestep
         vz       = abs(opti_data[3] - z_prev) / timestep
         omega_qx = abs(qx - qx_prev) / timestep
         omega_qy = abs(qy - qy_prev) / timestep
         omega_qz = abs(qz - qz_prev) / timestep
         omega_qw = abs(qw - qw_prev) / timestep
+
+        # Update 'previous' values
+        t_prev  = time.time()
+        x_prev  = opti_data[1]
+        z_prev  = opti_data[3]
+        qx_prev = qx
+        qy_prev = qy
+        qz_prev = qz
+        qw_prev = qw
 
 
         # Transform state to normalised state and clip
@@ -256,12 +304,18 @@ def get_action(policy, drone_reader, opti_reader):
         # Transform action to drone command
         action = action_to_drone_command(action)
 
+        sac_reader.read_data(action)
 
-# TODO: how to send action to drone?
+    print('Done!')
 
 
+
+
+# Initialise thread data reader objects
+# Used for preventing multiple threads from reading/writing at the same time
 drone_reader = DataReader()
 opti_reader = DataReader()
+sac_reader = DataReader()
 
 
 if __name__ == '__main__':
