@@ -36,7 +36,7 @@ import threading
 
 
 # Load policy that was trained using SAC/main.py
-policy = torch.load('./SAC/training/policy.pt')
+policy = torch.load('./SAC/training/jul14-policy.pt')
 
 # Initialise values used for SAC calculations
 t_prev = time.time()
@@ -48,12 +48,14 @@ qz_prev = 0.0
 qw_prev = 0.0
 
 # Get means and stds used for SAC normalisation from file
-state_means_stds = pd.read_csv('./SAC/training/state_means_stds.csv')
-action_means_stds = pd.read_csv('./SAC/training/action_means_stds.csv')
+state_means_stds = pd.read_csv('./SAC/training/jul14-state_means_stds.csv')
+action_means_stds = pd.read_csv('./SAC/training/jul14-action_means_stds.csv')
 
 ###### CRAZYFLIE DRONE CODE ######
 # Crazyflie initialise radio connection
-uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
+# uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
+uri = uri_helper.uri_from_env(default='radio://0/100/2M/E7E7E7E7E7')
+
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
 
@@ -70,7 +72,7 @@ def log_callback(timestamp, data, logconf):
     drone_signals[3] = data['motor.m4']
     drone_signals[4] = data['pm.vbat']
 
-    print('Drone signals in: ', [drone_signals[0], drone_signals[1], drone_signals[2], drone_signals[3], drone_signals[4]])
+    # print('Drone signals in: ', [drone_signals[0], drone_signals[1], drone_signals[2], drone_signals[3], drone_signals[4]])
 
     drone_reader.read_data(drone_signals)
 
@@ -78,17 +80,22 @@ def log_callback(timestamp, data, logconf):
 def command_from_network(scf):
     global sac_reader
 
-    sac_reader.lock.acquire()
-    try:
-        action = sac_reader.value
-        # print('Drone lock acquired, drone data: ', drone_data)
-    finally:
-        sac_reader.lock.release()
-        time.sleep(0.02) # 50 Hz
+    time.sleep(4.0)
 
-    print('Command: ', action[0], action[1], action[2], action[3])
-    # time.sleep(0.1)
-    scf.cf.commander.send_setpoint(action[0], action[1], action[2], action[3]) # roll, pitch, yawrate, thrust
+    while True:
+        sac_reader.lock.acquire()
+        try:
+            action = sac_reader.value
+            # print('Drone lock acquired, drone data: ', drone_data)
+        finally:
+            sac_reader.lock.release()
+            time.sleep(0.02) # 50 Hz
+
+        print('Command: ', action[0], action[1], action[2], int(action[3]))
+        # TODO: -pitch or pitch?
+        # time.sleep(0.1)
+        scf.cf.commander.send_notify_setpoint_stop(10)
+        scf.cf.commander.send_setpoint(action[0], action[1], action[2], int(action[3])) # roll, pitch, yawrate, thrust
 
 
 
@@ -119,6 +126,8 @@ def fly_drone():
         log.start()
 
         scf.cf.commander.send_setpoint(0, 0, 0, 0)
+
+        time.sleep(1.5)
 
         command_from_network(scf)
 
@@ -211,7 +220,7 @@ class DataReader(object):
         try:
             logging.debug('Acquired a lock')
             self.value = data_in
-            print('Data in: ', self.value)
+            # print('Data in: ', self.value)
         finally:
             logging.debug('Released a lock')
             self.lock.release()
@@ -222,7 +231,7 @@ class DataReader(object):
 def normalise_state(state):
     global state_means_stds
 
-    for i in range(np.shape(state)):
+    for i in range(np.shape(state)[0]):
         state[i] = (state[i] - state_means_stds['State means'][i]) / state_means_stds['State stds'][i] 
         state[i] = np.clip(state[i], -1, 1)
         state[i] *= 5
@@ -233,9 +242,17 @@ def normalise_state(state):
 def action_to_drone_command(action):
     global action_means_stds
 
-    # TODO: torch detach to go from tensor to array?
-    for i in range(np.shape(action)):
-        action[i] = (action[i] * action_means_stds['Actions means'][i]) + action_means_stds['Action stds'][i] 
+    # Action is input as a torch tensor, detach to get numpy array
+    action = action[0].detach().cpu().numpy()
+
+    # Transform action from normalised value to a real drone command
+    # x = (Z * std) + mean
+    for i in range(np.shape(action)[0]):
+        action[i] = (action[i] * action_means_stds['Action stds'][i]) + action_means_stds['Action means'][i] 
+
+    # Clip thrust to be between 0 and 60000
+    # TODO: this shouldn't be necessary?
+    action[3] = np.clip(action[3], 0, 60000)
 
     return action
 
@@ -245,7 +262,11 @@ def get_action(policy, drone_reader, opti_reader):
 
     start_time = time.time()
 
-    while (time.time() - start_time < 1.0):
+    print('#############################################################################################')
+    time.sleep(3.0)
+
+    while (time.time() - start_time < 10.0):
+
         # Get state in real-time from OptiTrack and drone
         drone_reader.lock.acquire()
         try:
@@ -263,7 +284,10 @@ def get_action(policy, drone_reader, opti_reader):
             opti_reader.lock.release()
             time.sleep(0.01)
 
+        # print('Drone data: ', drone_data)
+        # print('Opti data: ', opti_data)
 
+        # Parse data
         # drone_data is in the form [m1, m2, m3, m4, vbat]
         # opti_data is in the form  [id, x,  y,  z,  qx, qy, qz, qw]
         y    = opti_data[2]
@@ -302,13 +326,16 @@ def get_action(policy, drone_reader, opti_reader):
         state = normalise_state(state)
 
         # Get action from policy
-        action = policy(torch.tensor([y, vx, vz, qx, qy, qz, qw, omega_qx, omega_qy, omega_qz, omega_qw, m1, m2, m3, m4, vbat]))
+        action = policy(torch.tensor([y, vx, vz, qx, qy, qz, qw, omega_qx, omega_qy, omega_qz, omega_qw, m1, m2, m3, m4, vbat], device='cuda'))
 
         # Transform action to drone command
         action = action_to_drone_command(action)
 
         sac_reader.read_data(action)
 
+        print('Action: ', action)
+
+    sac_reader.read_data([0, 0, 0, 0])
     print('Done!')
 
 

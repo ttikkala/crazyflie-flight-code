@@ -15,7 +15,8 @@ from cflib.crazyflie.syncLogger import SyncLogger
 
 import atexit
 
-uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
+# uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
+uri = uri_helper.uri_from_env(default='radio://0/100/2M/E7E7E7E7E7')
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
 
@@ -220,8 +221,8 @@ def main():
 
             lg_motor.start()
 
-            # thrust_ramp(scf)
-            thrust_from_file(scf)
+            thrust_ramp(scf)
+            # thrust_from_file(scf)
             # ramp_motors(scf)
             # motors_from_file(scf)
             # hover_auto(scf)
