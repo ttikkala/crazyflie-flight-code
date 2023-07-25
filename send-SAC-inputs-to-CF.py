@@ -251,7 +251,6 @@ def action_to_drone_command(action):
         action[i] = (action[i] * action_means_stds['Action stds'][i]) + action_means_stds['Action means'][i] 
 
     # Clip thrust to be between 0 and 60000
-    # TODO: this shouldn't be necessary?
     action[3] = np.clip(action[3], 0, 60000)
 
     return action
@@ -260,12 +259,12 @@ def action_to_drone_command(action):
 def get_action(policy, drone_reader, opti_reader):
     global t_prev, x_prev, z_prev, qx_prev, qy_prev, qz_prev, qw_prev
 
+    time.sleep(3.0)
+    print('#############################################################################################')
+
     start_time = time.time()
 
-    print('#############################################################################################')
-    time.sleep(3.0)
-
-    while (time.time() - start_time < 10.0):
+    while (time.time() - start_time < 7.0):
 
         # Get state in real-time from OptiTrack and drone
         drone_reader.lock.acquire()
@@ -344,8 +343,8 @@ def get_action(policy, drone_reader, opti_reader):
 # Initialise thread data reader objects
 # Used for preventing multiple threads from reading/writing at the same time
 drone_reader = DataReader()
-opti_reader = DataReader()
-sac_reader = DataReader()
+opti_reader  = DataReader()
+sac_reader   = DataReader()
 
 
 if __name__ == '__main__':
