@@ -264,7 +264,7 @@ def get_action(policy, drone_reader, opti_reader):
 
     start_time = time.time()
 
-    while (time.time() - start_time < 7.0):
+    while (time.time() - start_time < 25.0):
 
         # Get state in real-time from OptiTrack and drone
         drone_reader.lock.acquire()
