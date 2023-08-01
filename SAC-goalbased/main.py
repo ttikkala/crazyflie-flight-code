@@ -18,15 +18,14 @@ First imports data, then initialises the replay buffer and the networks.
 Then the algortihm is trained using rlkit's implementation of SAC.
 The training stats are written to file. 
 
-Next the trained policy should probably be saved somewhere.
 """
 
 
 
 
 # Import data
-# TODO: Change this to be a command line argument
-folder_path = './'
+# TODO: Change this to be a command line argument, wrap in function or something? Kind of messy like this
+folder_path = './SAC-goalbased/'
 # file_path = str(sys.argv[1])
 state_path = folder_path + 'states.csv'
 rewards_path = folder_path + 'rewards.csv'
@@ -90,7 +89,8 @@ try:
 
         # Print training stats; losses etc
         statistics = agent._algorithm.get_diagnostics()
-        print(i, statistics)
+        print('Training step: ', i)
+        print(statistics)
 
 
         # Training stats to file
@@ -101,22 +101,22 @@ try:
                         statistics['Q2 Predictions Min'], statistics['Q Targets Mean'], statistics['Q Targets Std'], statistics['Q Targets Max'], statistics['Q Targets Min'], 
                         statistics['Log Pis Mean'], statistics['Log Pis Std'], statistics['Log Pis Max'], statistics['Log Pis Min'], 
                         statistics['Policy mu Mean'], statistics['Policy mu Std'], statistics['Policy mu Max'], statistics['Policy mu Min'], 
-                        statistics['Policy log std Mean'], statistics['Policy log std Std'], statistics['Policy log std Max'], statistics['Policy log std Min']]) # time.time() is time since 'epoch' - Jan 1 1970 00:00:00
-
+                        statistics['Policy log std Mean'], statistics['Policy log std Std'], statistics['Policy log std Max'], statistics['Policy log std Min']])
+            
 
 except KeyboardInterrupt:
     # Save policy and Q-function networks torch objects for future use in case of ctrl+C
-    torch.save(agent._algorithm.policy, 'policy.pt')
-    torch.save(agent._algorithm.qf1, 'qf1.pt')
-    torch.save(agent._algorithm.qf2, 'qf2.pt')
-    torch.save(agent._algorithm.qf1_target, 'qf1_target.pt')
-    torch.save(agent._algorithm.qf2_target, 'qf2_target.pt')
+    torch.save(agent._algorithm.policy,     'jul31-policy.pt')
+    torch.save(agent._algorithm.qf1,        'jul31-qf1.pt')
+    torch.save(agent._algorithm.qf2,        'jul31-qf2.pt')
+    torch.save(agent._algorithm.target_qf1, 'jul31-qf1_target.pt')
+    torch.save(agent._algorithm.target_qf2, 'jul31-qf2_target.pt')
 
 
 
 # Save policy and Q-function networks torch objects for future use
-torch.save(agent._algorithm.policy, 'policy.pt')
-torch.save(agent._algorithm.qf1, 'qf1.pt')
-torch.save(agent._algorithm.qf2, 'qf2.pt')
-torch.save(agent._algorithm.qf1_target, 'qf1_target.pt')
-torch.save(agent._algorithm.qf2_target, 'qf2_target.pt')
+torch.save(agent._algorithm.policy,     'jul31-policy.pt')
+torch.save(agent._algorithm.qf1,        'jul31-qf1.pt')
+torch.save(agent._algorithm.qf2,        'jul31-qf2.pt')
+torch.save(agent._algorithm.target_qf1, 'jul31-qf1_target.pt')
+torch.save(agent._algorithm.target_qf2, 'jul31-qf2_target.pt')
