@@ -11,9 +11,10 @@ qf2_target  = torch.load('jul31-qf2_target.pt')
 policy      = torch.load('jul31-policy.pt')
 
 networks = {'qf1' : qf1, 'qf2' : qf2, 'qf1_target' : qf1_target, 'qf2_target' : qf2_target, 'policy' : policy}
-folder_path = './SAC-goalbased/'
+folder_path = './'
 # file_path = str(sys.argv[1])
-state_path = folder_path + 'states.csv'
+
+state_path   = folder_path + 'states.csv'
 rewards_path = folder_path + 'rewards.csv'
 actions_path = folder_path + 'actions.csv'
 

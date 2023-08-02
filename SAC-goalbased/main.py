@@ -25,9 +25,9 @@ The training stats are written to file.
 
 # Import data
 # TODO: Change this to be a command line argument, wrap in function or something? Kind of messy like this
-folder_path = './SAC-goalbased/'
+folder_path = './'
 # file_path = str(sys.argv[1])
-state_path = folder_path + 'states.csv'
+state_path   = folder_path + 'states.csv'
 rewards_path = folder_path + 'rewards.csv'
 actions_path = folder_path + 'actions.csv'
 
@@ -84,7 +84,7 @@ with open(file_path, 'a') as fd:
 
 try:
     # Start training
-    for i in range(1000):
+    for i in range(500):
         agent.single_train_step()
 
         # Print training stats; losses etc
@@ -106,17 +106,17 @@ try:
 
 except KeyboardInterrupt:
     # Save policy and Q-function networks torch objects for future use in case of ctrl+C
-    torch.save(agent._algorithm.policy,     'jul31-policy.pt')
-    torch.save(agent._algorithm.qf1,        'jul31-qf1.pt')
-    torch.save(agent._algorithm.qf2,        'jul31-qf2.pt')
-    torch.save(agent._algorithm.target_qf1, 'jul31-qf1_target.pt')
-    torch.save(agent._algorithm.target_qf2, 'jul31-qf2_target.pt')
+    torch.save(agent._algorithm.policy,     'aug02-policy.pt')
+    torch.save(agent._algorithm.qf1,        'aug02-qf1.pt')
+    torch.save(agent._algorithm.qf2,        'aug02-qf2.pt')
+    torch.save(agent._algorithm.target_qf1, 'aug02-qf1_target.pt')
+    torch.save(agent._algorithm.target_qf2, 'aug02-qf2_target.pt')
 
 
 
 # Save policy and Q-function networks torch objects for future use
-torch.save(agent._algorithm.policy,     'jul31-policy.pt')
-torch.save(agent._algorithm.qf1,        'jul31-qf1.pt')
-torch.save(agent._algorithm.qf2,        'jul31-qf2.pt')
-torch.save(agent._algorithm.target_qf1, 'jul31-qf1_target.pt')
-torch.save(agent._algorithm.target_qf2, 'jul31-qf2_target.pt')
+torch.save(agent._algorithm.policy,     'aug02-policy.pt')
+torch.save(agent._algorithm.qf1,        'aug02-qf1.pt')
+torch.save(agent._algorithm.qf2,        'aug02-qf2.pt')
+torch.save(agent._algorithm.target_qf1, 'aug02-qf1_target.pt')
+torch.save(agent._algorithm.target_qf2, 'aug02-qf2_target.pt')

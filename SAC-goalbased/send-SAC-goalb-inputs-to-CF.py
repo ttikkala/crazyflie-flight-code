@@ -33,13 +33,13 @@ import threading
 ###
 
 # File path for saving actions
-file_path_alist = 'action_list-' + time.ctime().replace(' ', '-') + '.csv'
+file_path_alist = './SAC-goalbased/policy-flight-data/action_list-' + time.ctime().replace(' ', '-') + '.csv'
 with open(file_path_alist, 'a') as fd:
     cwriter = csv.writer(fd)
     cwriter.writerow(['Time', 'Roll', 'Pitch', 'Yawrate', 'Thrust']) 
 
 # File path for saving states
-file_path_slist = 'state_list-' + time.ctime().replace(' ', '-') + '.csv'
+file_path_slist = './SAC-goalbased/policy-flight-data/state_list-' + time.ctime().replace(' ', '-') + '.csv'
 with open(file_path_slist, 'a') as fd:
     cwriter = csv.writer(fd)
     cwriter.writerow(['Time', 
@@ -57,7 +57,7 @@ with open(file_path_slist, 'a') as fd:
 
 
 # Load policy that was trained using SAC/main.py
-policy      = torch.load('./jul31-policy.pt')
+policy      = torch.load('./flight6-policy.pt')
 # qf1         = torch.load('./SAC/training/jul31-qf1.pt')
 # qf2         = torch.load('./SAC/training/jul31-qf2.pt')
 # qf1_target  = torch.load('./SAC/training/jul31-qf1_target.pt')
@@ -74,14 +74,20 @@ qw_prev = 0.0
 
 # TODO: Initialise goal position, add a way to calculate this through a function
 goal_x = 0.0
-goal_y = 0.2
+goal_y = 0.3
 goal_z = 0.0
 goal_velx = 0.0
 goal_velz = 0.0
+# These are already normalised
 goal_qx = 2.5666
 goal_qy = -4.343
 goal_qz = -0.0419
 goal_qw = 0.08032
+
+# goal_qx = 0.007038
+# goal_qy = -0.8123
+# goal_qz = -0.0260
+# goal_qw = -0.5826
 
 # Get means and stds used for SAC normalisation from file
 state_means_stds  = pd.read_csv('./SAC-goalbased/jul31-state_means_stds.csv')
@@ -267,7 +273,7 @@ class DataReader(object):
 def normalise_state(state):
     global state_means_stds
 
-    for i in range(np.shape(state)[0]):
+    for i in range(np.shape(state)[0] - 4):
         state[i] = (state[i] - state_means_stds['State means'][i % 18]) / state_means_stds['State stds'][i % 18] 
         state[i] = np.clip(state[i], -1, 1)
         state[i] *= 5
@@ -303,7 +309,10 @@ def get_action(policy, drone_reader, opti_reader):
     print('#############################################################################################')
 
     start_time = time.time()
+    t_prev = time.time()
+    count = 0
 
+    
     while (time.time() - start_time < 10.0):
 
         # Get state in real-time from OptiTrack and drone
@@ -341,21 +350,35 @@ def get_action(policy, drone_reader, opti_reader):
         m3   = drone_data[2]
         m4   = drone_data[3]
         vbat = drone_data[4]
+
+
+        # Stop drone from crashing from super high all the time
+        if y > 0.5:
+            sac_reader.read_data([0, 0, 0, 0])
+            print('Too high!')
+            break
         
 
         # Calculate velocities and angular velocities
         timestep = time.time() - t_prev
-        vx       = abs(x - x_prev) / timestep
-        vz       = abs(z - z_prev) / timestep
-        omega_qx = abs(qx - qx_prev) / timestep
-        omega_qy = abs(qy - qy_prev) / timestep
-        omega_qz = abs(qz - qz_prev) / timestep
-        omega_qw = abs(qw - qw_prev) / timestep
+
+        if count % 10 == 0:
+            print('timestep: ', timestep)
+            print('x', x)
+            print('x prev', x_prev)
+            print('goal x', goal_x)
+
+        vx       = (x - x_prev) / timestep
+        vz       = (z - z_prev) / timestep
+        omega_qx = (qx - qx_prev) / timestep
+        omega_qy = (qy - qy_prev) / timestep
+        omega_qz = (qz - qz_prev) / timestep
+        omega_qw = (qw - qw_prev) / timestep
 
         # Update 'previous' values
         t_prev  = time.time()
-        x_prev  = opti_data[1]
-        z_prev  = opti_data[3]
+        x_prev  = x
+        z_prev  = z
         qx_prev = qx
         qy_prev = qy
         qz_prev = qz
@@ -376,7 +399,15 @@ def get_action(policy, drone_reader, opti_reader):
         # print('before', [x, y, z])
         
         state = normalise_state(state)
-        state_list.append([time.time(), state])
+        temp = [time.time(), state[0], state[1], state[2], 
+                                      state[3], state[4], 
+                                      state[5], state[6], state[7], state[8], 
+                                      state[9], state[10], state[11], state[12], 
+                                      state[13], state[14], state[15], state[16], state[17], 
+                                      state[18], state[19], state[20], 
+                                      state[21], state[22], 
+                                      state[23], state[24], state[25], state[26]]
+        state_list.append(temp)
 
         # print('after', [x, y, z])
         # print('State: ', state[0], state[1], state[2])
@@ -401,11 +432,35 @@ def get_action(policy, drone_reader, opti_reader):
 
         # Transform action to drone command
         action = action_to_drone_command(action)
-        action_list.append([time.time(), action])
+        temp = [time.time(), action[0], action[1], action[2], action[3]]
+        action_list.append(temp)
 
         sac_reader.read_data(action)
 
         print('Action: ', action)
+        count += 1
+
+        if count % 100 == 0:
+            # Save action list to file
+            with open(file_path_alist, 'a') as f:
+                cwriter = csv.writer(f)
+                cwriter.writerows(action_list)
+            
+            print('Action list saved to file!')
+            print('###############################################################################')
+
+            # Save state list to file
+            with open(file_path_slist, 'a') as f:
+                cwriter = csv.writer(f)
+                cwriter.writerows(state_list)
+
+            print('State list saved to file!')
+            print('###############################################################################')
+
+            # Reset lists
+            action_list = []
+            state_list  = []
+
 
     sac_reader.read_data([0, 0, 0, 0])
     print('Done!')
@@ -416,6 +471,7 @@ def get_action(policy, drone_reader, opti_reader):
         cwriter.writerows(action_list)
     
     print('Action list saved to file!')
+    print('###############################################################################')
 
     # Save state list to file
     with open(file_path_slist, 'a') as f:
@@ -423,6 +479,7 @@ def get_action(policy, drone_reader, opti_reader):
         cwriter.writerows(state_list)
 
     print('State list saved to file!')
+    print('###############################################################################')
 
 
 
