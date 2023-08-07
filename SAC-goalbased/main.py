@@ -39,6 +39,7 @@ states = state_data.to_numpy()
 rewards = rewards_data.to_numpy()
 actions = actions_data.to_numpy()
 
+
 observation_dim = np.shape(states)[1]
 action_dim = np.shape(actions)[1]
 

@@ -26,11 +26,28 @@ state_data = pd.read_csv(state_path)
 actions_data = pd.read_csv(actions_path)
 
 state_data_np = state_data.to_numpy()
-goal_positions = state_data_np[:, 19:24] # TODO: not sure if these are correct
+goal_positions = state_data_np[:, 19:24] 
 stable_orientations = state_data_np[:, 24:28]
 states = state_data_np[:, 1:]
 actions = actions_data.to_numpy()
 actions = actions[:, 1:]
+
+# Normalise actions
+action_means_stds = pd.read_csv('./SAC-goalbased/jul31-action_means_stds.csv')
+
+def clip_and_norm_actions(actions):
+    # Clip and normalise actions through Z-score
+    means = action_means_stds['Action means']
+    stds  = action_means_stds['Action stds']
+
+    for i in range(np.shape(actions)[1]):
+        actions[:,i] = (actions[:,i] - means[i]) / stds[i]
+        actions[:,i] = np.clip(actions[:,i], -1, 1)
+
+    return actions
+
+actions = clip_and_norm_actions(actions)
+print('normalised actions', actions)
 
 # print('goal pos', goal_positions)
 # print('goal or', stable_orientations)
@@ -63,7 +80,7 @@ def calculate_rewards(state, goal_positions, stable_orientation):
     return rewards
 
 rewards = calculate_rewards(states, goal_positions, stable_orientations)
-print(rewards)
+print('rewards', rewards)
 
 # save rewards to file
 rewards_df = pd.DataFrame(rewards)

@@ -76,7 +76,7 @@ def thrust_ramp(scf):
     while thrust >= 10001:
         scf.cf.commander.send_setpoint(roll, pitch, yawrate, thrust)
         time.sleep(0.1)
-        if thrust >= 11000:
+        if thrust >= 30000:
             thrust_mult = -1
         thrust += thrust_step * thrust_mult
     scf.cf.commander.send_setpoint(0, 0, 0, 0)

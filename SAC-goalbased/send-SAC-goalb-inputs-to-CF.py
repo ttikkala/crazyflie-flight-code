@@ -57,7 +57,7 @@ with open(file_path_slist, 'a') as fd:
 
 
 # Load policy that was trained using SAC/main.py
-policy      = torch.load('./flight6-policy.pt')
+policy      = torch.load('./jul31-policy.pt')
 # qf1         = torch.load('./SAC/training/jul31-qf1.pt')
 # qf2         = torch.load('./SAC/training/jul31-qf2.pt')
 # qf1_target  = torch.load('./SAC/training/jul31-qf1_target.pt')
@@ -79,15 +79,15 @@ goal_z = 0.0
 goal_velx = 0.0
 goal_velz = 0.0
 # These are already normalised
-goal_qx = 2.5666
-goal_qy = -4.343
-goal_qz = -0.0419
-goal_qw = 0.08032
+# goal_qx = 2.5666
+# goal_qy = -4.343
+# goal_qz = -0.0419
+# goal_qw = 0.08032
 
-# goal_qx = 0.007038
-# goal_qy = -0.8123
-# goal_qz = -0.0260
-# goal_qw = -0.5826
+goal_qx = 0.05149221
+goal_qy = 0.65286
+goal_qz = 0.016909
+goal_qw = 0.480119
 
 # Get means and stds used for SAC normalisation from file
 state_means_stds  = pd.read_csv('./SAC-goalbased/jul31-state_means_stds.csv')
@@ -136,7 +136,7 @@ def command_from_network(scf):
         print('Command: ', action[0], action[1], action[2], int(action[3]))
         # TODO: -pitch or pitch?
         # time.sleep(0.1)
-        scf.cf.commander.send_notify_setpoint_stop(10)
+        scf.cf.commander.send_notify_setpoint_stop(5)
         scf.cf.commander.send_setpoint(action[0], action[1], action[2], int(action[3])) # roll, pitch, yawrate, thrust
 
 
@@ -273,7 +273,7 @@ class DataReader(object):
 def normalise_state(state):
     global state_means_stds
 
-    for i in range(np.shape(state)[0] - 4):
+    for i in range(np.shape(state)[0]):
         state[i] = (state[i] - state_means_stds['State means'][i % 18]) / state_means_stds['State stds'][i % 18] 
         state[i] = np.clip(state[i], -1, 1)
         state[i] *= 5
@@ -282,16 +282,22 @@ def normalise_state(state):
     return state
 
 
-def action_to_drone_command(action):
+def action_to_drone_command(action, noise):
     global action_means_stds
 
     # Action is input as a torch tensor, detach to get numpy array
-    action = action[0].detach().cpu().numpy()
+    # action = action[0].detach().cpu().numpy()
 
     # Transform action from normalised value to a real drone command
     # x = (Z * std) + mean
     for i in range(np.shape(action)[0]):
         action[i] = (action[i] * action_means_stds['Action stds'][i]) + action_means_stds['Action means'][i] 
+
+    action[3] *= 1.15
+
+    # Add noise to action
+    if noise:
+        action += np.random.normal(0, 0.1, 4)
 
     # Clip thrust to be between 0 and 60000
     action[3] = np.clip(action[3], 0, 60000)
@@ -305,7 +311,9 @@ def get_action(policy, drone_reader, opti_reader):
     action_list = []
     state_list = []
 
-    time.sleep(3.0)
+    noise = False
+
+    time.sleep(4.0)
     print('#############################################################################################')
 
     start_time = time.time()
@@ -313,7 +321,7 @@ def get_action(policy, drone_reader, opti_reader):
     count = 0
 
     
-    while (time.time() - start_time < 10.0):
+    while (time.time() - start_time < 6.0):
 
         # Get state in real-time from OptiTrack and drone
         drone_reader.lock.acquire()
@@ -338,9 +346,9 @@ def get_action(policy, drone_reader, opti_reader):
         # Parse data
         # drone_data is in the form [m1, m2, m3, m4, vbat]
         # opti_data is in the form  [id, x,  y,  z,  qx, qy, qz, qw]
-        x    = opti_data[1] - 3.675
+        x    = opti_data[1] - 3.698
         y    = opti_data[2]
-        z    = opti_data[3] - 2.712
+        z    = opti_data[3] - 2.851
         qx   = opti_data[4]
         qy   = opti_data[5]
         qz   = opti_data[6]
@@ -352,21 +360,21 @@ def get_action(policy, drone_reader, opti_reader):
         vbat = drone_data[4]
 
 
-        # Stop drone from crashing from super high all the time
-        if y > 0.5:
+        # Stop drone from crashing from super high all the time and running out of optitrack range
+        if y > 0.4 or (x > 1.2 or x < -1.2) or (z > 1.2 or z < -1.2):
             sac_reader.read_data([0, 0, 0, 0])
-            print('Too high!')
+            print('Not safe!')
             break
         
 
         # Calculate velocities and angular velocities
         timestep = time.time() - t_prev
 
-        if count % 10 == 0:
-            print('timestep: ', timestep)
-            print('x', x)
-            print('x prev', x_prev)
-            print('goal x', goal_x)
+        # if count % 10 == 0:
+        #     print('timestep: ', timestep)
+        #     print('x', x)
+        #     print('x prev', x_prev)
+        #     print('goal x', goal_x)
 
         vx       = (x - x_prev) / timestep
         vz       = (z - z_prev) / timestep
@@ -431,7 +439,15 @@ def get_action(policy, drone_reader, opti_reader):
                                       state[23], state[24], state[25], state[26]], device='cuda'))
 
         # Transform action to drone command
-        action = action_to_drone_command(action)
+        action = action[0].detach().cpu().numpy()
+
+        if count % 50 == 0:
+            noise = True
+            action = action_to_drone_command(action, noise)
+            noise = False
+        else:
+            action = action_to_drone_command(action, noise)
+        
         temp = [time.time(), action[0], action[1], action[2], action[3]]
         action_list.append(temp)
 
