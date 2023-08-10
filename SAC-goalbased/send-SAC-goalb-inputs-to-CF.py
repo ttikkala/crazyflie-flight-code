@@ -57,7 +57,7 @@ with open(file_path_slist, 'a') as fd:
 
 
 # Load policy that was trained using SAC/main.py
-policy      = torch.load('./jul31-policy.pt')
+policy      = torch.load('./aug08-lin-policy.pt')
 # qf1         = torch.load('./SAC/training/jul31-qf1.pt')
 # qf2         = torch.load('./SAC/training/jul31-qf2.pt')
 # qf1_target  = torch.load('./SAC/training/jul31-qf1_target.pt')
@@ -124,6 +124,8 @@ def command_from_network(scf):
 
     time.sleep(4.0)
 
+    scf.cf.commander.send_setpoint(0, 0, 0, 0)
+
     while True:
         sac_reader.lock.acquire()
         try:
@@ -134,9 +136,8 @@ def command_from_network(scf):
             time.sleep(0.02) # 50 Hz
 
         print('Command: ', action[0], action[1], action[2], int(action[3]))
-        # TODO: -pitch or pitch?
         # time.sleep(0.1)
-        scf.cf.commander.send_notify_setpoint_stop(5)
+        scf.cf.commander.send_notify_setpoint_stop(10)
         scf.cf.commander.send_setpoint(action[0], action[1], action[2], int(action[3])) # roll, pitch, yawrate, thrust
 
 
@@ -293,7 +294,7 @@ def action_to_drone_command(action, noise):
     for i in range(np.shape(action)[0]):
         action[i] = (action[i] * action_means_stds['Action stds'][i]) + action_means_stds['Action means'][i] 
 
-    action[3] *= 1.15
+    action[3] *= 1.2
 
     # Add noise to action
     if noise:
@@ -321,7 +322,7 @@ def get_action(policy, drone_reader, opti_reader):
     count = 0
 
     
-    while (time.time() - start_time < 6.0):
+    while (time.time() - start_time < 10.0):
 
         # Get state in real-time from OptiTrack and drone
         drone_reader.lock.acquire()
@@ -441,12 +442,12 @@ def get_action(policy, drone_reader, opti_reader):
         # Transform action to drone command
         action = action[0].detach().cpu().numpy()
 
-        if count % 50 == 0:
-            noise = True
-            action = action_to_drone_command(action, noise)
-            noise = False
-        else:
-            action = action_to_drone_command(action, noise)
+        # if count % 50 == 0:
+        #     noise = True
+        #     action = action_to_drone_command(action, noise)
+        #     noise = False
+        # else:
+        action = action_to_drone_command(action, noise)
         
         temp = [time.time(), action[0], action[1], action[2], action[3]]
         action_list.append(temp)

@@ -27,9 +27,9 @@ The training stats are written to file.
 # TODO: Change this to be a command line argument, wrap in function or something? Kind of messy like this
 folder_path = './'
 # file_path = str(sys.argv[1])
-state_path   = folder_path + 'states.csv'
-rewards_path = folder_path + 'rewards.csv'
-actions_path = folder_path + 'actions.csv'
+state_path   = folder_path +  'states-lin.csv'
+rewards_path = folder_path + 'rewards-lin.csv'
+actions_path = folder_path + 'actions-lin.csv'
 
 state_data = pd.read_csv(state_path)
 rewards_data = pd.read_csv(rewards_path)
@@ -107,17 +107,17 @@ try:
 
 except KeyboardInterrupt:
     # Save policy and Q-function networks torch objects for future use in case of ctrl+C
-    torch.save(agent._algorithm.policy,     'aug02-policy.pt')
-    torch.save(agent._algorithm.qf1,        'aug02-qf1.pt')
-    torch.save(agent._algorithm.qf2,        'aug02-qf2.pt')
-    torch.save(agent._algorithm.target_qf1, 'aug02-qf1_target.pt')
-    torch.save(agent._algorithm.target_qf2, 'aug02-qf2_target.pt')
+    torch.save(agent._algorithm.policy,     'aug08-lin-policy.pt')
+    torch.save(agent._algorithm.qf1,        'aug08-lin-qf1.pt')
+    torch.save(agent._algorithm.qf2,        'aug08-lin-qf2.pt')
+    torch.save(agent._algorithm.target_qf1, 'aug08-lin-qf1_target.pt')
+    torch.save(agent._algorithm.target_qf2, 'aug08-lin-qf2_target.pt')
 
 
 
 # Save policy and Q-function networks torch objects for future use
-torch.save(agent._algorithm.policy,     'aug02-policy.pt')
-torch.save(agent._algorithm.qf1,        'aug02-qf1.pt')
-torch.save(agent._algorithm.qf2,        'aug02-qf2.pt')
-torch.save(agent._algorithm.target_qf1, 'aug02-qf1_target.pt')
-torch.save(agent._algorithm.target_qf2, 'aug02-qf2_target.pt')
+torch.save(agent._algorithm.policy,     'aug08-lin-policy.pt')
+torch.save(agent._algorithm.qf1,        'aug08-lin-qf1.pt')
+torch.save(agent._algorithm.qf2,        'aug08-lin-qf2.pt')
+torch.save(agent._algorithm.target_qf1, 'aug08-lin-qf1_target.pt')
+torch.save(agent._algorithm.target_qf2, 'aug08-lin-qf2_target.pt')

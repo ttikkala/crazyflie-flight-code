@@ -66,6 +66,15 @@ state_vz        = np.gradient(state_posz, mocap_data['Timestamp'])
 
 print('vx', state_vx, np.shape(state_vx))
 print('vz', state_vz, np.shape(state_vz))
+vel_effects = False
+if vel_effects:
+    with np.printoptions(threshold=50000):
+        print(state_vx)
+    state_vx = np.where(np.abs(state_vx) < 0.05, 0.0, state_vx)
+    # state[:,4] = np.where(np.abs(state[:,4]) < 0.05, 0.0, state[:,4])
+    with np.printoptions(threshold=50000):
+        print(state_vx)
+    
 
 state_angvelx   = np.gradient(state_quatx, mocap_data['Timestamp'])
 state_angvely   = np.gradient(state_quaty, mocap_data['Timestamp'])
@@ -145,7 +154,9 @@ def calculate_rewards(state, goal_positions, stable_orientation):
     # TODO: should different parts of reward be weighted differently?
     # TODO: penalty for large actions?
 
-    pos_error = np.array([state[:,0], state[:,1], state[:,2], state[:,3], state[:,4]]).transpose() - goal_positions
+    # TODO: try without velocity term, or with a penalty for large velocities
+
+    pos_error = np.array([state[:,0], state[:,1], state[:,2], np.zeros(np.shape(state[:,3])[0]), np.zeros(np.shape(state[:,3])[0])]).transpose() - goal_positions
     orientation_error = np.array([state[:,5], state[:,6], state[:,7], state[:,8]]).transpose() - stable_orientation
 
     # Take the norm of each error vector separately to get a vector of rewards https://stackoverflow.com/questions/7741878/how-to-apply-numpy-linalg-norm-to-each-row-of-a-matrix
@@ -154,6 +165,23 @@ def calculate_rewards(state, goal_positions, stable_orientation):
 
     return rewards
 
+def calculate_rewards_linear(state, goal_positions, stable_orientation):
+    # Calculate rewards using error between current state and goal state
+    # Goal state defined by an arbitrary height, 0 velocity and orientation from when the drone is on the ground
+    # --> maximise -sqrt( (curr pos - goal pos)**2 + (curr orientation - stable orientation)**2 )
+    # wrap it in an exponential to ensure rewards stay small
+
+    # TODO: should different parts of reward be weighted differently?
+
+
+    pos_error = np.array([state[:,0], state[:,1], state[:,2], state[:,3], state[:,4]]).transpose() - goal_positions
+    orientation_error = np.array([state[:,5], state[:,6], state[:,7], state[:,8]]).transpose() - stable_orientation
+
+    # Take the norm of each error vector separately to get a vector of rewards https://stackoverflow.com/questions/7741878/how-to-apply-numpy-linalg-norm-to-each-row-of-a-matrix
+    rewards = 1 - 0.01 * (np.sum(np.abs(pos_error)**2, axis = -1)**(1./2) + np.sum(np.abs(orientation_error)**2, axis = -1)**(1./2))
+    rewards *= 0.001
+
+    return rewards
 
 def choose_goal_position(means, stds, length):
 
@@ -164,7 +192,7 @@ def choose_goal_position(means, stds, length):
     goal_position = np.array([np.random.choice(plane_pos_range), np.random.choice(hover_range), np.random.choice(plane_pos_range), 0.0, 0.0]) # [rel x, y, rel z, vel_x, vel_z]
     # print(goal_position)
 
-    for i in range(length):
+    for i in range(length):            
         if i % 500 == 0:
             goal_position = np.array([np.random.choice(plane_pos_range), np.random.choice(hover_range), np.random.choice(plane_pos_range), 0.0, 0.0])
             # print(goal_position)
@@ -199,7 +227,7 @@ def main():
     
     action_data, ac_means, ac_stds = clip_and_norm_actions(action_data)
 
-    output_file = "./" + "actions.csv"
+    output_file = "./" + "actions-lin.csv"
     action_df = pd.DataFrame({'roll commands': action_data[:,0], 
                               'pitch commands': action_data[:,1], 
                               'yawrate commands': action_data[:,2], 
@@ -250,7 +278,7 @@ def main():
     # print(goal_positions)
 
     # In this version the state is augmented with the goal position and orientation
-    output_file = "./" + "states.csv"
+    output_file = "./" + "states-lin.csv"
     state_df = pd.DataFrame({'Rel pos x': state_data[:,0], 'Rel pos y': state_data[:,1], 'Rel pos z': state_data[:,2], 
                             'Vel x': state_data[:,3], 'Vel z': state_data[:,4], 
                             'Quat x': state_data[:,5], 'Quat y': state_data[:,6], 'Quat z': state_data[:,7], 'Quat w': state_data[:,8],
@@ -269,18 +297,19 @@ def main():
 
 
     # Calculate rewards for each state
-    rewards = calculate_rewards(state_data, goal_positions, stable_orientation)
+    # rewards = calculate_rewards(state_data, goal_positions, stable_orientation)
+    rewards = calculate_rewards_linear(state_data, goal_positions, stable_orientation)
 
-    output_file = "./" + "rewards.csv"
+    output_file = "./" + "rewards-lin.csv"
     reward_df = pd.DataFrame({'Rewards': rewards})
     reward_df.to_csv(output_file, index=False)
 
 
     # Save actions means, stds and state means, stds to csv
-    output_file = "./" + "action_means_stds.csv"
+    output_file = "./" + "action_means_stds-lin.csv"
     ac_means_stds_df = pd.DataFrame({'Action means': ac_means, 'Action stds': ac_stds})
     ac_means_stds_df.to_csv(output_file, index=False)
-    output_file = "./" + "state_means_stds.csv"
+    output_file = "./" + "state_means_stds-lin.csv"
     state_means_stds_df = pd.DataFrame({'State means': state_means, 'State stds': state_stds})
     state_means_stds_df.to_csv(output_file, index=False)
 

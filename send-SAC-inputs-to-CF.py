@@ -250,6 +250,9 @@ def action_to_drone_command(action):
     for i in range(np.shape(action)[0]):
         action[i] = (action[i] * action_means_stds['Action stds'][i]) + action_means_stds['Action means'][i] 
 
+    # smaller motors and props
+    action[3] *= 1.2
+
     # Clip thrust to be between 0 and 60000
     action[3] = np.clip(action[3], 0, 60000)
 
@@ -289,7 +292,9 @@ def get_action(policy, drone_reader, opti_reader):
         # Parse data
         # drone_data is in the form [m1, m2, m3, m4, vbat]
         # opti_data is in the form  [id, x,  y,  z,  qx, qy, qz, qw]
+        x    = opti_data[1]
         y    = opti_data[2]
+        z    = opti_data[3]
         qx   = opti_data[4]
         qy   = opti_data[5]
         qz   = opti_data[6]
@@ -299,6 +304,12 @@ def get_action(policy, drone_reader, opti_reader):
         m3   = drone_data[2]
         m4   = drone_data[3]
         vbat = drone_data[4]
+
+        # Stop drone from crashing from super high all the time and running out of optitrack range
+        if y > 0.4 or (x > 4.4 or x < 2.5) or (z > 3.8 or z < 1.5):
+            sac_reader.read_data([0, 0, 0, 0])
+            print('Not safe!')
+            break
         
 
         # Calculate velocities and angular velocities
